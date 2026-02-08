@@ -1,0 +1,86 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-06T18:52:56.123Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 4,
+    "implemented": 3,
+    "items": [
+      {
+        "id": "REQ-1",
+        "summary": "Add the uploaded logo image as static assets under frontend/public/assets/generated and standardize filenames so they can be referenced by the UI.",
+        "status": "missing",
+        "plannedFiles": [
+          "frontend/public/assets/generated/fy-logo-mark.dim_512x512.png",
+          "frontend/public/assets/generated/fy-wordmark.dim_1200x300.png"
+        ],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Replace the current logo images in the global header (Topbar) with the new logo asset(s) generated from the uploaded image.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/app/layout/Topbar.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/app/layout/Topbar.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Apply the provided color palette globally using Tailwind/Shadcn theme variables so Deep Indigo (#1A2B4C) is the predominant color, Slate Gray (#3E4A59) is used for body text, Ice White (#F4F7F9) is used for backgrounds, and Sage Green (#7A918D) is used only as an accent; ensure high contrast and avoid vibrant neon/pink/purple colors.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/index.css",
+          "frontend/tailwind.config.js"
+        ],
+        "matchedFiles": [
+          "frontend/src/index.css",
+          "frontend/tailwind.config.js"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Set Inter as the default sans-serif font across the app and enforce the typography hierarchy: titles semibold, subtitles medium, body regular.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/index.html",
+          "frontend/tailwind.config.js",
+          "frontend/src/index.css",
+          "frontend/src/pages/auth/LoginPage.tsx",
+          "frontend/src/pages/internal/DashboardPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/index.html",
+          "frontend/tailwind.config.js",
+          "frontend/src/index.css",
+          "frontend/src/pages/auth/LoginPage.tsx",
+          "frontend/src/pages/internal/DashboardPage.tsx"
+        ]
+      }
+    ]
+  },
+  "changedFiles": [
+    "build-request.json",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/index.html",
+    "frontend/public/assets/generated/firsty-logo-mark.dim_512x512.png",
+    "frontend/public/assets/generated/firsty-wordmark.dim_1200x300.png",
+    "frontend/src/app/layout/Topbar.tsx",
+    "frontend/src/index.css",
+    "frontend/src/pages/auth/LoginPage.tsx",
+    "frontend/src/pages/internal/DashboardPage.tsx",
+    "frontend/tailwind.config.js",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

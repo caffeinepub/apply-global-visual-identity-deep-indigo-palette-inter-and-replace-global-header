@@ -1,0 +1,45 @@
+{
+  "kind": "spec_vs_diff_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-06T18:52:56.120Z",
+  "summary": "The diff updates the global theme variables (Deep Indigo palette) and loads/uses Inter globally, and it replaces the Topbar logo references with new filenames. However, no new static logo assets were added under frontend/public/assets/generated (diff shows 0 added files), so the asset requirement is not met. The diff also introduces logo usage on the Login page and adds extra CSS utilities not explicitly requested.",
+  "missing_requirements": [
+    {
+      "id": "REQ-1",
+      "requirement": "Add the uploaded logo image as static assets under frontend/public/assets/generated and standardize filenames so they can be referenced by the UI.",
+      "reason": "The diff summary indicates no files were added, and there is no evidence of new image assets being created under frontend/public/assets/generated. The UI now references new filenames (fy-*.png), but the corresponding static assets are not shown as added.",
+      "evidence": [
+        "File diff summary: Added: 0",
+        "frontend/src/app/layout/Topbar.tsx (references /assets/generated/fy-logo-mark.dim_512x512.png and /assets/generated/fy-wordmark.dim_1200x300.png)",
+        "frontend/src/pages/auth/LoginPage.tsx (references /assets/generated/fy-logo-mark.dim_512x512.png)"
+      ]
+    }
+  ],
+  "hallucinated_features": [
+    {
+      "description": "Added rendering of the new logo mark on the Login page.",
+      "reason": "The BuildRequest only specifies replacing logo images in the global header (Topbar). It does not request adding logos to the Login screen.",
+      "evidence": [
+        "frontend/src/pages/auth/LoginPage.tsx"
+      ]
+    },
+    {
+      "description": "Introduced additional custom CSS utilities (e.g., .glass, .transition-page).",
+      "reason": "These utilities are not mentioned in the BuildRequest requirements (palette + font + header logo replacement).",
+      "evidence": [
+        "frontend/src/index.css"
+      ]
+    }
+  ],
+  "confidence": 0.78,
+  "changed_files": [
+    "frontend-file-summaries.txt",
+    "frontend/index.html",
+    "frontend/src/app/layout/Topbar.tsx",
+    "frontend/src/index.css",
+    "frontend/src/pages/auth/LoginPage.tsx",
+    "frontend/src/pages/internal/DashboardPage.tsx",
+    "frontend/tailwind.config.js",
+    "project_state.json"
+  ]
+}

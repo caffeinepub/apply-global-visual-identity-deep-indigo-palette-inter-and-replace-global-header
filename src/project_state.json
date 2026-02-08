@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 3,
+  "summary": "App being updated to use a defined visual identity (color palette + typography) globally, and replace the global header top image with the provided image/logo.",
+  "architectural_notes": [
+    "Global UI theme: Primary color #1A2B4C (predominant), supporting colors #3E4A59, #F4F7F9, accent #7A918D (use sparingly); prioritize high contrast; avoid neon/vibrant colors (pink/purple).",
+    "Typography: Use Inter (sans-serif) globally; titles semibold, subtitles medium, body regular.",
+    "Header: Global header uses provided image/logo in place of existing top image."
+  ],
+  "known_issues": [],
+  "isFixRequest": false,
+  "imageRequirements": "## Edit Images\n- Convert the uploaded logo into a square mark with transparent background (Variação do nome completo (1).png > firsty-logo-mark.dim_512x512.png)\n- Convert the uploaded logo into a horizontal wordmark with transparent background (Variação do nome completo (1).png > firsty-wordmark.dim_1200x300.png)",
+  "existing_features": [
+    {
+      "id": "feature-replace-the-current-logo-images-in-the-global-header-topbar-with-the-new-logo-asset-s-generated-from-the-uploaded-image",
+      "title": "Replace the current logo images in the global header (Topbar) with the new logo asset(s) generated from the uploaded image.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-the-provided-color-palette-globally-using-tailwind-shadcn-theme-variables-so-deep-indigo-1a2b4c-is-the-predominant-color-slate-gray-3e4a59-is-used-for-body-text-ice-white-f4f7f9-is-used-for-backgrounds-and-sage-green-7a918d-is-used-only-as-an-accent-ensure-high-contrast-and-avoid-vibrant-neon-pink-purple-colors",
+      "title": "Apply the provided color palette globally using Tailwind/Shadcn theme variables so Deep Indigo (#1A2B4C) is the predominant color, Slate Gray (#3E4A59) is used for body text, Ice White (#F4F7F9) is used for backgrounds, and Sage Green (#7A918D) is used only as an accent; ensure high contrast and avoid vibrant neon/pink/purple colors.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-set-inter-as-the-default-sans-serif-font-across-the-app-and-enforce-the-typography-hierarchy-titles-semibold-subtitles-medium-body-regular",
+      "title": "Set Inter as the default sans-serif font across the app and enforce the typography hierarchy: titles semibold, subtitles medium, body regular.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Replace the image at the top of the global header with the provided image/logo",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Apply the specified visual identity globally (primary deep indigo #1A2B4C, support colors, usage rules) and set Inter as the default sans-serif font with defined weight hierarchy",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Add the uploaded logo image as static assets under frontend/public/assets/generated and standardize filenames so they can be referenced by the UI.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    }
+  ],
+  "projectName": "Apply global visual identity (Deep Indigo palette + Inter) and replace global header logo",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

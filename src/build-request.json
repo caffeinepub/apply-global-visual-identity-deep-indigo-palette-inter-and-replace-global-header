@@ -1,0 +1,107 @@
+{
+  "kind": "build_request",
+  "title": "Apply global visual identity (Deep Indigo palette + Inter) and replace global header logo",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "Add the uploaded logo image as static assets under frontend/public/assets/generated and standardize filenames so they can be referenced by the UI.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1",
+          "msg-2"
+        ],
+        "quotes": [
+          "Pode colocar essa imagem no lugar da imagem que está no topo?",
+          "1-No header global"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The repository contains new logo assets in frontend/public/assets/generated.",
+        "The filenames are stable and referenced consistently by the UI (no direct references to the raw upload filename in JSX)."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Replace the current logo images in the global header (Topbar) with the new logo asset(s) generated from the uploaded image.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1",
+          "msg-2"
+        ],
+        "quotes": [
+          "Pode colocar essa imagem no lugar da imagem que está no topo?",
+          "1-No header global"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The Topbar no longer renders /assets/generated/firsty-logo-mark.dim_512x512.png and /assets/generated/firsty-wordmark.dim_1200x300.png; it renders the new logo asset(s) instead.",
+        "The header layout remains visually aligned (logo fits within the existing 64px header height without overflow)."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Apply the provided color palette globally using Tailwind/Shadcn theme variables so Deep Indigo (#1A2B4C) is the predominant color, Slate Gray (#3E4A59) is used for body text, Ice White (#F4F7F9) is used for backgrounds, and Sage Green (#7A918D) is used only as an accent; ensure high contrast and avoid vibrant neon/pink/purple colors.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "E deixar o aplicativo dentro dessa identidade visual abaixo:\nAzul Anil Profundo\n\n`#1A2B4C`\n\nCores de Apoio\n\n- Cinza Ardósia – `#3E4A59`\n- Branco Gelo – `#F4F7F9`\n- Verde Sálvia – `#7A918D`\n\nRegras de uso\n\n- O azul deve ser predominante\n- Verde apenas como acento\n- Priorizar alto contraste\n- Evitar cores vibrantes (neon, rosa, roxo)"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Primary actions, active navigation states, and key highlights use the Deep Indigo primary color.",
+        "Accent color (Sage Green) appears only in small highlight/accent contexts (e.g., badges, subtle indicators), not as dominant surfaces.",
+        "Text/background contrast remains readable in light mode across key screens (e.g., Login, Dashboard, Documents, Settings)."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Set Inter as the default sans-serif font across the app and enforce the typography hierarchy: titles semibold, subtitles medium, body regular.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-3",
+          "msg-4"
+        ],
+        "quotes": [
+          "pode ser a 1",
+          "Tipografia\n\nEstilo:\n\nSans-serif moderna e funcional\n\nFontes recomendadas:\n\n- Inter\n\nHierarquia\n\n- Títulos: Semi-bold\n- Subtítulos: Medium\n- Texto corrido: Regular"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Inter is loaded by the frontend (e.g., via index.html or CSS) and used as the default sans-serif font throughout the app.",
+        "Headings/titles render with semibold weight, subtitles with medium weight, and body text with regular weight (verified on at least Login and one internal page such as Dashboard)."
+      ]
+    }
+  ],
+  "constraints": [
+    "Do not edit files under frontend/src/components/ui (Shadcn components are read-only and must be composed, not modified).",
+    "Do not edit files listed in frontend immutablePaths (e.g., frontend/src/main.tsx, frontend/src/hooks/useActor.ts, frontend/src/hooks/useInternetIdentity.ts/tsx)."
+  ],
+  "nonGoals": [
+    "Backend/canister changes (Motoko) are out of scope for this request.",
+    "Fixes to document upload/list behavior or localization work are out of scope for this request."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": [
+      "Convert the uploaded logo into a square mark with transparent background (Variação do nome completo (1).png > firsty-logo-mark.dim_512x512.png)",
+      "Convert the uploaded logo into a horizontal wordmark with transparent background (Variação do nome completo (1).png > firsty-wordmark.dim_1200x300.png)"
+    ]
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
+  }
+}
