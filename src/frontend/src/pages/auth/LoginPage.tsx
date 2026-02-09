@@ -5,6 +5,7 @@ import { isMockMode } from '../../config/dataMode';
 import { MockRoleSelector } from '../../auth/MockAuthProvider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { BrandLogo } from '@/components/BrandLogo';
 
 export default function LoginPage() {
   const { login, isAuthenticated, isLoading } = useAuth();
@@ -19,13 +20,9 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background to-muted">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-4 text-center">
+        <CardHeader className="space-y-6 text-center">
           <div className="flex justify-center">
-            <img 
-              src="/assets/generated/fy-logo-mark.dim_512x512.png" 
-              alt="First-Y" 
-              className="h-16 w-16"
-            />
+            <BrandLogo className="h-24 w-auto object-contain" />
           </div>
           <div>
             <CardTitle className="text-2xl font-semibold">Bem-vindo ao First-Y</CardTitle>

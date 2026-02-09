@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useActor } from './useActor';
-import { getDataClient, type DataClient } from '../data/client';
+import { createMockClient, createBackendClient, type DataClient } from '../data/client';
 import { isMockMode } from '../config/dataMode';
 
 interface UseStage1ClientResult {
@@ -18,15 +18,15 @@ export function useStage1Client(): UseStage1ClientResult {
   
   const client = useMemo(() => {
     if (isMockMode()) {
-      return getDataClient();
+      return createMockClient();
     }
     
     if (!actor) {
       // Retorna um cliente mock temporário enquanto o actor carrega
-      return getDataClient();
+      return createMockClient();
     }
     
-    return getDataClient(actor);
+    return createBackendClient(actor);
   }, [actor]);
   
   const isReady = isMockMode() || !!actor;

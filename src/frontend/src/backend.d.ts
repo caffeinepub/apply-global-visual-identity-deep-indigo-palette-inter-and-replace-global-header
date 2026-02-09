@@ -15,13 +15,10 @@ export class ExternalBlob {
     withUploadProgress(onProgress: (percentage: number) => void): ExternalBlob;
 }
 export type OrgId = string;
-export interface Contact {
-    id: string;
+export interface ChurnParams {
+    startTime: bigint;
+    endTime: bigint;
     orgId: OrgId;
-    name: string;
-    createdBy: Principal;
-    email: string;
-    phone: string;
 }
 export interface NpsCampaign {
     id: string;
@@ -30,6 +27,18 @@ export interface NpsCampaign {
     name: string;
     createdAt: bigint;
     createdBy: Principal;
+}
+export interface NpsResponse {
+    orgId: OrgId;
+    campaignId: string;
+    submittedAt: bigint;
+    submittedBy: Principal;
+    score: bigint;
+    comment: string;
+    recommendReason: string;
+    isSuccessStory: boolean;
+    notRecommendReason: string;
+    contractId: string;
 }
 export interface DocumentUploadInput {
     orgId: OrgId;
@@ -63,15 +72,6 @@ export interface TeamInvitation {
     invitedBy: Principal;
     inviteeIdentifier: string;
 }
-export interface Activity {
-    id: string;
-    orgId: OrgId;
-    relatedProject?: string;
-    name: string;
-    createdBy: Principal;
-    completed: boolean;
-    dueDate?: bigint;
-}
 export interface Deal {
     id: string;
     value: bigint;
@@ -90,12 +90,54 @@ export interface FinanceTransaction {
 }
 export interface Contract {
     id: string;
+    isCancelled: boolean;
     endDate?: bigint;
     value: bigint;
     orgId: OrgId;
+    cancellationReason: string;
     name: string;
     createdBy: Principal;
     startDate: bigint;
+}
+export interface SupportMessage {
+    id: string;
+    orgId: OrgId;
+    sentAt: bigint;
+    sentBy: Principal;
+    message: string;
+}
+export interface Contact {
+    id: string;
+    orgId: OrgId;
+    name: string;
+    createdBy: Principal;
+    email: string;
+    phone: string;
+}
+export interface ChurnOverview {
+    periodNetPromoterScore: number;
+    periodRetentionRate: number;
+    orgId: OrgId;
+    totalContracts: bigint;
+    periodChurnRate: number;
+    periodActiveContracts: bigint;
+    cancellationReasons: Array<[string, bigint]>;
+    periodCancelledContracts: bigint;
+    totalCancelledContracts: bigint;
+    periodCanceledContracts: bigint;
+}
+export interface CancellationStats {
+    count: bigint;
+    reason: string;
+}
+export interface Activity {
+    id: string;
+    orgId: OrgId;
+    relatedProject?: string;
+    name: string;
+    createdBy: Principal;
+    completed: boolean;
+    dueDate?: bigint;
 }
 export interface Project {
     id: string;
@@ -112,10 +154,17 @@ export interface Organization {
     createdBy: Principal;
 }
 export interface UserProfile {
+    appRole: AppUserRole;
     email: string;
     currentOrgId?: OrgId;
     lastName: string;
     firstName: string;
+}
+export enum AppUserRole {
+    FIRSTY_CONSULTANT = "FIRSTY_CONSULTANT",
+    FIRSTY_ADMIN = "FIRSTY_ADMIN",
+    OWNER_ADMIN = "OWNER_ADMIN",
+    MEMBER = "MEMBER"
 }
 export enum DealStage {
     prospecting = "prospecting",
@@ -148,6 +197,7 @@ export enum UserRole {
 export interface backendInterface {
     addMemberToOrg(user: Principal, orgId: OrgId): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    cancelContract(contractId: string, cancellationReason: string): Promise<void>;
     createActivity(activity: Activity): Promise<void>;
     createContact(contact: Contact): Promise<void>;
     createContract(contract: Contract): Promise<void>;
@@ -158,21 +208,32 @@ export interface backendInterface {
     createProject(project: Project): Promise<void>;
     generateReport(report: Report): Promise<void>;
     getActivity(id: string): Promise<Activity | null>;
+    getAllSupportMessages(): Promise<Array<SupportMessage>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
+    getCancellationStats(orgId: OrgId): Promise<Array<CancellationStats>>;
+    getChurnOverview(params: ChurnParams): Promise<ChurnOverview>;
     getContact(id: string): Promise<Contact | null>;
     getContract(id: string): Promise<Contract | null>;
     getDeal(id: string): Promise<Deal | null>;
     getDocument(id: string): Promise<Document | null>;
     getFinanceTransaction(id: string): Promise<FinanceTransaction | null>;
     getNpsCampaign(id: string): Promise<NpsCampaign | null>;
+    getNpsResponseByContract(contractId: string): Promise<Array<NpsResponse>>;
+    getNpsResponses(orgId: OrgId): Promise<Array<NpsResponse>>;
+    getNpsResponsesByCampaign(campaignId: string): Promise<Array<NpsResponse>>;
+    getNpsResponsesExist(orgId: OrgId): Promise<boolean>;
+    getNpsResponsesForPeriod(orgId: OrgId, startTime: bigint, endTime: bigint): Promise<Array<NpsResponse>>;
+    getNpsResponsesForTimeFrame(orgId: OrgId, campaignId: string, startTime: bigint, endTime: bigint): Promise<Array<NpsResponse>>;
     getOrganization(orgId: OrgId): Promise<Organization | null>;
     getProject(id: string): Promise<Project | null>;
     getReport(id: string): Promise<Report | null>;
+    getSupportMessages(orgId: OrgId): Promise<Array<SupportMessage>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     inviteTeamMember(invitation: TeamInvitation): Promise<void>;
     isCallerAdmin(): Promise<boolean>;
     listActivities(orgId: OrgId): Promise<Array<Activity>>;
+    listCancelledContracts(orgId: OrgId): Promise<Array<Contract>>;
     listContacts(orgId: OrgId): Promise<Array<Contact>>;
     listContracts(orgId: OrgId): Promise<Array<Contract>>;
     listDeals(orgId: OrgId): Promise<Array<Deal>>;
@@ -184,5 +245,7 @@ export interface backendInterface {
     listReports(orgId: OrgId): Promise<Array<Report>>;
     listTeamInvitations(orgId: OrgId): Promise<Array<TeamInvitation>>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    sendSupportMessage(message: string, orgId: OrgId, timestamp: bigint): Promise<void>;
+    submitNpsResponse(response: NpsResponse): Promise<void>;
     uploadDocument(input: DocumentUploadInput): Promise<void>;
 }

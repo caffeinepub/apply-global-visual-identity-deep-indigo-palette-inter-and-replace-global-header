@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, ReactNode, use
 import type { OrgId, Organization } from '../types/model';
 import { useAuth } from '../auth/AuthProvider';
 import { useStage1Client } from '../hooks/useStage1Client';
+import { isMockMode } from '../config/dataMode';
 
 interface OrgContextValue {
   currentOrg: Organization | null;
@@ -14,36 +15,58 @@ interface OrgContextValue {
 const OrgContext = createContext<OrgContextValue | undefined>(undefined);
 
 export function OrgProvider({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { client, isReady } = useStage1Client();
   const [currentOrg, setCurrentOrgState] = useState<Organization | null>(null);
   const [isLoadingOrg, setIsLoadingOrg] = useState(false);
 
-  // Hydrate organization from persisted selection on app load
+  // Hydrate organization from backend profile or persisted selection on app load
   useEffect(() => {
     if (!isAuthenticated || !isReady) {
       return;
     }
 
-    const persistedOrgId = sessionStorage.getItem('currentOrgId');
-    if (persistedOrgId && !currentOrg) {
+    // In BACKEND mode, try to get currentOrgId from user profile first
+    if (!isMockMode()) {
       setIsLoadingOrg(true);
-      client.getOrg(persistedOrgId)
-        .then((org) => {
-          if (org) {
-            setCurrentOrgState(org);
-          } else {
-            // Org no longer exists or user lost access
-            sessionStorage.removeItem('currentOrgId');
+      client.getUserProfile()
+        .then((profile) => {
+          if (profile?.currentOrgId && !currentOrg) {
+            return client.getOrg(profile.currentOrgId).then((org) => {
+              if (org) {
+                setCurrentOrgState(org);
+                sessionStorage.setItem('currentOrgId', org.id);
+              }
+            });
           }
         })
         .catch((error) => {
-          console.error('Failed to load persisted org:', error);
-          sessionStorage.removeItem('currentOrgId');
+          console.error('Failed to load org from profile:', error);
         })
         .finally(() => {
           setIsLoadingOrg(false);
         });
+    } else {
+      // In MOCK mode, use sessionStorage
+      const persistedOrgId = sessionStorage.getItem('currentOrgId');
+      if (persistedOrgId && !currentOrg) {
+        setIsLoadingOrg(true);
+        client.getOrg(persistedOrgId)
+          .then((org) => {
+            if (org) {
+              setCurrentOrgState(org);
+            } else {
+              sessionStorage.removeItem('currentOrgId');
+            }
+          })
+          .catch((error) => {
+            console.error('Failed to load persisted org:', error);
+            sessionStorage.removeItem('currentOrgId');
+          })
+          .finally(() => {
+            setIsLoadingOrg(false);
+          });
+      }
     }
   }, [isAuthenticated, isReady, client, currentOrg]);
 
@@ -66,7 +89,10 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const needsOrgSelection = isAuthenticated && !currentOrg && !isLoadingOrg;
+  // Determine if org selection is needed
+  // Firsty roles need to select an org; non-Firsty roles should have one automatically
+  const isFirstyRole = user?.role === 'FIRSTY_ADMIN' || user?.role === 'FIRSTY_CONSULTANT';
+  const needsOrgSelection = isAuthenticated && !currentOrg && !isLoadingOrg && isFirstyRole;
 
   const value: OrgContextValue = {
     currentOrg,

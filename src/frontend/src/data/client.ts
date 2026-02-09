@@ -10,6 +10,7 @@ import type {
   FinanceTransaction,
   Project,
   NpsCampaign,
+  NpsResponse,
   Task,
   Meeting,
   Deliverable,
@@ -87,6 +88,7 @@ export interface DataClient {
   createContract: (orgId: string, contract: Partial<Contract>) => Promise<Contract>;
   updateContract: (contractId: string, contract: Partial<Contract>) => Promise<void>;
   deleteContract: (contractId: string) => Promise<void>;
+  cancelContract: (contractId: string, cancelReason: string) => Promise<void>;
   
   // Financeiro
   listFinanceTransactions: typeof mockClient.mockListFinanceTransactions;
@@ -94,9 +96,11 @@ export interface DataClient {
   updateFinanceTransaction: (transactionId: string, transaction: Partial<FinanceTransaction>) => Promise<void>;
   deleteFinanceTransaction: (transactionId: string) => Promise<void>;
   
-  // NPS Campaigns
+  // NPS Campaigns & Responses
   listNpsCampaigns: (orgId: string) => Promise<NpsCampaign[]>;
   createNpsCampaign: (orgId: string, campaign: Partial<NpsCampaign>) => Promise<NpsCampaign>;
+  listNpsResponses: (orgId: string, startDate: Date, endDate: Date) => Promise<NpsResponse[]>;
+  createNpsResponse: (orgId: string, response: Partial<NpsResponse>) => Promise<NpsResponse>;
   
   // Reports
   listReports: (orgId: string) => Promise<any[]>;
@@ -155,12 +159,15 @@ export function createMockClient(): DataClient {
     createContract: mockClient.mockCreateContract,
     updateContract: mockClient.mockUpdateContract,
     deleteContract: mockClient.mockDeleteContract,
+    cancelContract: mockClient.mockCancelContract,
     listFinanceTransactions: mockClient.mockListFinanceTransactions,
     createFinanceTransaction: mockClient.mockCreateFinanceTransaction,
     updateFinanceTransaction: mockClient.mockUpdateFinanceTransaction,
     deleteFinanceTransaction: mockClient.mockDeleteFinanceTransaction,
     listNpsCampaigns: mockClient.mockListNpsCampaigns,
     createNpsCampaign: mockClient.mockCreateNpsCampaign,
+    listNpsResponses: mockClient.mockListNpsResponses,
+    createNpsResponse: mockClient.mockCreateNpsResponse,
     listReports: mockClient.mockListReports,
     generateReport: mockClient.mockGenerateReport,
     isCallerAdmin: mockClient.mockIsCallerAdmin,
@@ -172,75 +179,65 @@ export function createMockClient(): DataClient {
 
 export function createBackendClient(actor: backendInterface): DataClient {
   const backend = new BackendClient(actor);
-  
   return {
-    listOrgs: () => backend.listOrgs(),
-    getOrg: (orgId) => backend.getOrg(orgId),
-    createOrg: (name) => backend.createOrg(name),
-    selectOrg: (orgId) => backend.selectOrg(orgId),
-    getUserProfile: () => backend.getUserProfile(),
-    saveUserProfile: (profile) => backend.saveUserProfile(profile),
-    listProjects: (orgId) => backend.listProjects(orgId),
-    getProject: (projectId) => backend.getProject(projectId),
-    createProject: (orgId, project) => backend.createProject(orgId, project),
-    listTasks: (projectId) => backend.listTasks(projectId),
-    createTask: (projectId, task) => backend.createTask(projectId, task),
-    updateTask: (taskId, task) => backend.updateTask(taskId, task),
-    deleteTask: (taskId) => backend.deleteTask(taskId),
-    updateTaskStatus: (taskId, status) => backend.updateTaskStatus(taskId, status),
-    listMeetings: (projectId) => backend.listMeetings(projectId),
-    createMeeting: (projectId, meeting) => backend.createMeeting(projectId, meeting),
-    updateMeeting: (meetingId, meeting) => backend.updateMeeting(meetingId, meeting),
-    deleteMeeting: (meetingId) => backend.deleteMeeting(meetingId),
-    listDeliverables: (projectId) => backend.listDeliverables(projectId),
-    updateDeliverable: (deliverableId, deliverable) => backend.updateDeliverable(deliverableId, deliverable),
-    deleteDeliverable: (deliverableId) => backend.deleteDeliverable(deliverableId),
-    listKpis: (projectId) => backend.listKpis(projectId),
-    listMessages: (projectId) => backend.listMessages(projectId),
-    sendMessage: (projectId, text) => backend.sendMessage(projectId, text),
-    listDocuments: (orgId) => backend.listDocuments(orgId),
-    createDocument: (projectId, document) => backend.createDocument(projectId, document),
-    uploadDocument: (orgId, document) => backend.uploadDocument(orgId, document),
-    deleteDocument: (documentId) => backend.deleteDocument(documentId),
-    listContacts: (orgId) => backend.listContacts(orgId),
-    createContact: (orgId, contact) => backend.createContact(orgId, contact),
-    updateContact: (contactId, contact) => backend.updateContact(contactId, contact),
-    deleteContact: (contactId) => backend.deleteContact(contactId),
-    listDeals: (orgId) => backend.listDeals(orgId),
-    createDeal: (orgId, deal) => backend.createDeal(orgId, deal),
-    updateDeal: (dealId, deal) => backend.updateDeal(dealId, deal),
-    deleteDeal: (dealId) => backend.deleteDeal(dealId),
-    listActivities: (orgId) => backend.listActivities(orgId),
-    createActivity: (orgId, activity) => backend.createActivity(orgId, activity),
-    updateActivity: (activityId, activity) => backend.updateActivity(activityId, activity),
-    deleteActivity: (activityId) => backend.deleteActivity(activityId),
-    listContracts: (orgId) => backend.listContracts(orgId),
-    createContract: (orgId, contract) => backend.createContract(orgId, contract),
-    updateContract: (contractId, contract) => backend.updateContract(contractId, contract),
-    deleteContract: (contractId) => backend.deleteContract(contractId),
-    listFinanceTransactions: (orgId) => backend.listFinanceTransactions(orgId),
-    createFinanceTransaction: (orgId, transaction) => backend.createFinanceTransaction(orgId, transaction),
-    updateFinanceTransaction: (transactionId, transaction) => backend.updateFinanceTransaction(transactionId, transaction),
-    deleteFinanceTransaction: (transactionId) => backend.deleteFinanceTransaction(transactionId),
-    listNpsCampaigns: (orgId) => backend.listNpsCampaigns(orgId),
-    createNpsCampaign: (orgId, campaign) => backend.createNpsCampaign(orgId, campaign),
-    listReports: (orgId) => backend.listReports(orgId),
-    generateReport: (orgId, report) => backend.generateReport(orgId, report),
-    isCallerAdmin: () => backend.isCallerAdmin(),
-    inviteTeamMember: (orgId, invitation) => backend.inviteTeamMember(orgId, invitation),
-    listOrgMembers: (orgId) => backend.listOrgMembers(orgId),
-    listTeamInvitations: (orgId) => backend.listTeamInvitations(orgId),
+    listOrgs: backend.listOrgs.bind(backend),
+    getOrg: backend.getOrg.bind(backend),
+    createOrg: backend.createOrg.bind(backend),
+    selectOrg: backend.selectOrg.bind(backend),
+    getUserProfile: backend.getUserProfile.bind(backend),
+    saveUserProfile: backend.saveUserProfile.bind(backend),
+    listProjects: backend.listProjects.bind(backend),
+    getProject: backend.getProject.bind(backend),
+    createProject: backend.createProject.bind(backend),
+    listTasks: backend.listTasks.bind(backend),
+    createTask: backend.createTask.bind(backend),
+    updateTask: backend.updateTask.bind(backend),
+    deleteTask: backend.deleteTask.bind(backend),
+    updateTaskStatus: backend.updateTaskStatus.bind(backend),
+    listMeetings: backend.listMeetings.bind(backend),
+    createMeeting: backend.createMeeting.bind(backend),
+    updateMeeting: backend.updateMeeting.bind(backend),
+    deleteMeeting: backend.deleteMeeting.bind(backend),
+    listDeliverables: backend.listDeliverables.bind(backend),
+    updateDeliverable: backend.updateDeliverable.bind(backend),
+    deleteDeliverable: backend.deleteDeliverable.bind(backend),
+    listKpis: backend.listKpis.bind(backend),
+    listMessages: backend.listMessages.bind(backend),
+    sendMessage: backend.sendMessage.bind(backend),
+    listDocuments: backend.listDocuments.bind(backend),
+    createDocument: backend.createDocument.bind(backend),
+    uploadDocument: backend.uploadDocument.bind(backend),
+    deleteDocument: backend.deleteDocument.bind(backend),
+    listContacts: backend.listContacts.bind(backend),
+    createContact: backend.createContact.bind(backend),
+    updateContact: backend.updateContact.bind(backend),
+    deleteContact: backend.deleteContact.bind(backend),
+    listDeals: backend.listDeals.bind(backend),
+    createDeal: backend.createDeal.bind(backend),
+    updateDeal: backend.updateDeal.bind(backend),
+    deleteDeal: backend.deleteDeal.bind(backend),
+    listActivities: backend.listActivities.bind(backend),
+    createActivity: backend.createActivity.bind(backend),
+    updateActivity: backend.updateActivity.bind(backend),
+    deleteActivity: backend.deleteActivity.bind(backend),
+    listContracts: backend.listContracts.bind(backend),
+    createContract: backend.createContract.bind(backend),
+    updateContract: backend.updateContract.bind(backend),
+    deleteContract: backend.deleteContract.bind(backend),
+    cancelContract: backend.cancelContract.bind(backend),
+    listFinanceTransactions: backend.listFinanceTransactions.bind(backend),
+    createFinanceTransaction: backend.createFinanceTransaction.bind(backend),
+    updateFinanceTransaction: backend.updateFinanceTransaction.bind(backend),
+    deleteFinanceTransaction: backend.deleteFinanceTransaction.bind(backend),
+    listNpsCampaigns: backend.listNpsCampaigns.bind(backend),
+    createNpsCampaign: backend.createNpsCampaign.bind(backend),
+    listNpsResponses: backend.listNpsResponses.bind(backend),
+    createNpsResponse: backend.createNpsResponse.bind(backend),
+    listReports: backend.listReports.bind(backend),
+    generateReport: backend.generateReport.bind(backend),
+    isCallerAdmin: backend.isCallerAdmin.bind(backend),
+    inviteTeamMember: backend.inviteTeamMember.bind(backend),
+    listOrgMembers: backend.listOrgMembers.bind(backend),
+    listTeamInvitations: backend.listTeamInvitations.bind(backend),
   };
-}
-
-export function getDataClient(actor?: backendInterface | null): DataClient {
-  if (isMockMode()) {
-    return createMockClient();
-  }
-  
-  if (!actor) {
-    throw new Error('Actor não disponível em modo BACKEND');
-  }
-  
-  return createBackendClient(actor);
 }

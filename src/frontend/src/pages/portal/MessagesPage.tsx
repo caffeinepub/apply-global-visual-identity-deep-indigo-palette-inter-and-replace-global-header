@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useStage1Client } from '../../hooks/useStage1Client';
-import { useActiveProject } from '../../portal/useActiveProject';
+import { useCurrentOrg } from '../../org/OrgProvider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,20 +13,20 @@ import type { Message } from '../../types/model';
 
 export default function MessagesPage() {
   const { client, isReady } = useStage1Client();
-  const { activeProjectId } = useActiveProject();
+  const { currentOrgId } = useCurrentOrg();
   const queryClient = useQueryClient();
   const [newMessage, setNewMessage] = useState('');
 
   const { data: messages, isLoading, isError, error } = useQuery({
-    queryKey: ['messages', activeProjectId],
-    queryFn: () => client.listMessages(activeProjectId!),
-    enabled: isReady && !!activeProjectId,
+    queryKey: ['messages', currentOrgId],
+    queryFn: () => client.listMessages(currentOrgId!),
+    enabled: isReady && !!currentOrgId,
   });
 
   const sendMessageMutation = useMutation({
-    mutationFn: (text: string) => client.sendMessage(activeProjectId!, text),
+    mutationFn: (text: string) => client.sendMessage(currentOrgId!, text),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['messages', activeProjectId] });
+      queryClient.invalidateQueries({ queryKey: ['messages', currentOrgId] });
       setNewMessage('');
     },
   });
@@ -56,17 +56,17 @@ export default function MessagesPage() {
     return variantMap[role] || 'outline';
   };
 
-  if (!activeProjectId) {
+  if (!currentOrgId) {
     return (
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">{strings.nav.messages}</h1>
-          <p className="text-muted-foreground">Comunicação com a equipe</p>
+          <p className="text-muted-foreground">Mensagens de suporte</p>
         </div>
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">
-              Selecione um projeto ativo no Dashboard para visualizar as mensagens
+              Selecione uma organização para visualizar as mensagens de suporte
             </p>
           </CardContent>
         </Card>
@@ -78,7 +78,7 @@ export default function MessagesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">{strings.nav.messages}</h1>
-        <p className="text-muted-foreground">Comunicação com a equipe</p>
+        <p className="text-muted-foreground">Mensagens de suporte</p>
       </div>
 
       <QueryBoundary
@@ -89,7 +89,7 @@ export default function MessagesPage() {
       >
         <Card>
           <CardHeader>
-            <CardTitle>Thread de Mensagens</CardTitle>
+            <CardTitle>Thread de Suporte</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-4 max-h-[500px] overflow-y-auto">
@@ -127,7 +127,7 @@ export default function MessagesPage() {
               <Textarea
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Digite sua mensagem..."
+                placeholder="Digite sua mensagem de suporte..."
                 rows={3}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {

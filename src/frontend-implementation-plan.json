@@ -1,96 +1,92 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Deep Indigo + Inter global identity and Topbar logo replacement",
+  "title": "Frontend: autenticação II com contexto de role/org do backend + mensagens de suporte persistidas + seletor de organização para Firsty",
   "requirements": [
     {
-      "id": "REQ-1",
-      "summary": "Add new logo static assets under frontend/public/assets/generated with stable, UI-friendly filenames.",
+      "id": "REQ-4",
+      "summary": "Trocar a UI de Mensagens do Portal para usar a thread de suporte persistida no backend (por organização) e permitir fluxo de leitura/envio em BACKEND mode.",
       "acceptanceCriteria": [
-        "The repository contains new logo assets in frontend/public/assets/generated.",
-        "The filenames are stable and referenced consistently by the UI (no direct references to the raw upload filename in JSX)."
+        "A UI de mensagens de suporte lista e permite enviar mensagens para a organização selecionada por usuários autorizados.",
+        "Usuários FIRSTY_ADMIN e FIRSTY_CONSULTANT conseguem visualizar e responder usando a organização atualmente selecionada (com troca via seletor de organização).",
+        "Ao recarregar a página em BACKEND mode, as mensagens continuam carregando do backend (sem fallback para mock/in-memory)."
       ],
       "file_operations": [
         {
-          "path": "frontend/public/assets/generated/fy-logo-mark.dim_512x512.png",
-          "operation": "create",
-          "description": "Add the newly generated square logo mark (transparent background) as a static asset with a stable filename for UI references."
+          "path": "frontend/src/pages/portal/MessagesPage.tsx",
+          "operation": "modify",
+          "description": "Atualizar a página para exibir uma thread de suporte baseada em organização (usar currentOrgId do OrgProvider em vez de activeProjectId), ler via client.listMessages(orgId) e enviar via client.sendMessage(orgId, texto), mantendo strings em PT-BR e estados de loading/erro via QueryBoundary."
         },
         {
-          "path": "frontend/public/assets/generated/fy-wordmark.dim_1200x300.png",
-          "operation": "create",
-          "description": "Add the newly generated horizontal wordmark (transparent background) as a static asset with a stable filename for UI references."
+          "path": "frontend/src/data/api/backendClient.ts",
+          "operation": "modify",
+          "description": "Implementar o modo BACKEND para mensagens como mensagens de suporte: mapear listMessages(threadId) para getSupportMessages(orgId) e sendMessage(threadId, text) para sendSupportMessage(message, orgId, timestamp). Garantir que BACKEND mode não retorne arrays vazios nem lance 'Not implemented' para o fluxo de suporte. Usar os tipos do backend (SupportMessage) e mapear para o tipo Message do frontend."
+        },
+        {
+          "path": "frontend/src/data/mock/mockClient.ts",
+          "operation": "modify",
+          "description": "Ajustar o mock de mensagens para aceitar orgId como 'threadId' (mantendo compatibilidade com telas existentes), para que a página de Mensagens continue funcional em modo MOCK após a troca para thread por organização."
+        },
+        {
+          "path": "frontend/src/data/client.ts",
+          "operation": "modify",
+          "description": "Garantir que as assinaturas e bindings de DataClient.listMessages/sendMessage continuem coerentes após a mudança de semântica para mensagens de suporte por organização (threadId=orgId), sem introduzir novas rotas/páginas."
         }
       ]
     },
     {
-      "id": "REQ-2",
-      "summary": "Update the global header (Topbar) to render the new logo asset(s) and keep alignment within the 64px header height.",
+      "id": "REQ-5",
+      "summary": "Em BACKEND mode, resolver autenticação/role via Internet Identity + contexto de role/org do backend e adicionar UX de seleção/filtro de organização para roles Firsty.",
       "acceptanceCriteria": [
-        "The Topbar no longer renders /assets/generated/firsty-logo-mark.dim_512x512.png and /assets/generated/firsty-wordmark.dim_1200x300.png; it renders the new logo asset(s) instead.",
-        "The header layout remains visually aligned (logo fits within the existing 64px header height without overflow)."
+        "Em BACKEND mode, o role do usuário vem do backend e é aplicado via caminho adaptIdentityToUser(...).",
+        "FIRSTY_ADMIN e FIRSTY_CONSULTANT conseguem listar/selecionar organizações na tela de seleção; usuários não-Firsty só veem (e operam em) sua organização.",
+        "Após selecionar organização como Firsty, páginas org-scoped passam a carregar/mutar dados para a organização selecionada."
       ],
       "file_operations": [
+        {
+          "path": "frontend/src/auth/AuthProvider.tsx",
+          "operation": "modify",
+          "description": "Atualizar o fluxo de BACKEND auth para obter do backend o UserProfile (incluindo appRole e currentOrgId quando disponível) e alimentar adaptIdentityToUser(identity, profile, authContext) com contexto real do backend. Usar o componente selecionado \"authorization\" para orientar o comportamento esperado (login obrigatório, carregar perfil via getCallerUserProfile, limpar cache no logout). Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/auth/InternetIdentityAuthAdapter.ts",
+          "operation": "modify",
+          "description": "Atualizar adaptIdentityToUser(...) para resolver o AppRole a partir do contexto retornado pelo backend (ex.: profile.appRole) em BACKEND mode, mantendo fallback seguro e sem alterar strings PT-BR existentes. Usar o componente selecionado \"authorization\" como referência para o contrato de perfil/role no frontend. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/types/model.ts",
+          "operation": "modify",
+          "description": "Alinhar o tipo UserProfile do frontend com o que o backend fornece em BACKEND mode (incluir appRole e currentOrgId), mantendo compatibilidade com modo MOCK."
+        },
+        {
+          "path": "frontend/src/org/OrgProvider.tsx",
+          "operation": "modify",
+          "description": "Em BACKEND mode, hidratar/atualizar currentOrg a partir do perfil do backend (currentOrgId) além do sessionStorage, e garantir que needsOrgSelection seja verdadeiro para roles Firsty quando não houver org selecionada (e falso para não-Firsty com org única)."
+        },
+        {
+          "path": "frontend/src/pages/auth/SelectOrganizationPage.tsx",
+          "operation": "modify",
+          "description": "Implementar UX de seleção de organização compatível com roles Firsty: listar organizações acessíveis via client.listOrgs(); para não-Firsty, limitar a lista à organização do usuário (ou redirecionar automaticamente se aplicável). Ao selecionar, persistir via client.selectOrg(org.id) em BACKEND mode e atualizar OrgProvider."
+        },
         {
           "path": "frontend/src/app/layout/Topbar.tsx",
           "operation": "modify",
-          "description": "Replace the current logo <img> sources with the new static assets at frontend/public/assets/generated/fy-logo-mark.dim_512x512.png and frontend/public/assets/generated/fy-wordmark.dim_1200x300.png; ensure sizing stays within the existing h-16 header (e.g., keep mark ~32px and wordmark ~24px tall) and maintain alignment/gap."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Apply the Deep Indigo palette globally via Tailwind/Shadcn theme variables with high contrast and restrained Sage accent usage.",
-      "acceptanceCriteria": [
-        "Primary actions, active navigation states, and key highlights use the Deep Indigo primary color.",
-        "Accent color (Sage Green) appears only in small highlight/accent contexts (e.g., badges, subtle indicators), not as dominant surfaces.",
-        "Text/background contrast remains readable in light mode across key screens (e.g., Login, Dashboard, Documents, Settings)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/index.css",
-          "operation": "modify",
-          "description": "Update global CSS theme variables to match the provided palette: Deep Indigo (#1A2B4C) as primary, Slate Gray (#3E4A59) for foreground/body text, Ice White (#F4F7F9) for backgrounds, and Sage Green (#7A918D) for accent only; also adjust any chart/support tokens to avoid neon/pink/purple hues and preserve readable contrast in light mode."
+          "description": "Adicionar acesso rápido para roles Firsty trocarem a organização (ex.: ação 'Trocar organização' que navega para /selecionar-organizacao) e exibir a organização atual de forma consistente, mantendo UI em português e sem editar componentes em frontend/src/components/ui."
         },
         {
-          "path": "frontend/tailwind.config.js",
+          "path": "frontend/src/app/router/PostAuthLanding.tsx",
           "operation": "modify",
-          "description": "Align Tailwind color tokens with the updated theme variable strategy (e.g., ensure primary/foreground/background/muted/accent are derived from the CSS variables used by Shadcn) so components consistently pick up the new palette across the app."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Set Inter as the default sans-serif font and enforce typography hierarchy (titles semibold, subtitles medium, body regular).",
-      "acceptanceCriteria": [
-        "Inter is loaded by the frontend (e.g., via index.html or CSS) and used as the default sans-serif font throughout the app.",
-        "Headings/titles render with semibold weight, subtitles with medium weight, and body text with regular weight (verified on at least Login and one internal page such as Dashboard)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/index.html",
-          "operation": "modify",
-          "description": "Load the Inter font (e.g., via a font provider link tag) with weights 400 (regular), 500 (medium), and 600 (semibold) so it is available globally."
+          "description": "Ajustar o redirecionamento pós-auth para respeitar o estado de seleção de organização para Firsty (ir para /selecionar-organizacao quando necessário) e manter o fluxo atual para usuários não-Firsty."
         },
         {
-          "path": "frontend/tailwind.config.js",
+          "path": "frontend/src/data/api/backendClient.ts",
           "operation": "modify",
-          "description": "Set Inter as the default sans font family in Tailwind theme configuration so all `font-sans` usage defaults to Inter throughout the app."
+          "description": "Atualizar listOrgs() para usar a capacidade de listagem de organizações acessíveis quando disponível no backend (necessário para o seletor de org de roles Firsty), e garantir que selectOrg(orgId) persista currentOrgId no perfil (saveCallerUserProfile) em BACKEND mode."
         },
         {
-          "path": "frontend/src/index.css",
+          "path": "frontend/src/backend.d.ts",
           "operation": "modify",
-          "description": "Apply global typography defaults: set the app’s base font-family to Inter and establish a hierarchy where titles/headings are semibold, subtitle patterns are medium, and body text defaults to regular weight (using @layer base rules without modifying shadcn/ui components)."
-        },
-        {
-          "path": "frontend/src/pages/auth/LoginPage.tsx",
-          "operation": "modify",
-          "description": "Adjust title/subtitle class usage so the Login page clearly reflects the hierarchy (CardTitle semibold; CardDescription/subtitle medium; body copy regular) while keeping existing layout intact."
-        },
-        {
-          "path": "frontend/src/pages/internal/DashboardPage.tsx",
-          "operation": "modify",
-          "description": "Adjust the main page heading/subheading styles to match the hierarchy (h1 semibold; subtitle medium; avoid using extra-bold) and ensure body text remains regular."
+          "description": "Atualizar a definição do backendInterface no frontend para incluir a capacidade necessária para listar organizações acessíveis (conforme implementação do backend), permitindo que client.listOrgs() funcione em BACKEND mode."
         }
       ]
     }

@@ -2,55 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-replace-the-current-logo-images-in-the-global-header-topbar-with-the-new-logo-asset-s-generated-from-the-uploaded-image",
-      "featureTitle": "Replace the current logo images in the global header (Topbar) with the new logo asset(s) generated from the uploaded image.",
+      "featureId": "feature-implement-support-messaging-persistence-and-routing-so-that-messages-typed-in-the-app-s-support-messages-field-are-stored-and-are-accessible-to-firsty-firsty-admin-and-firsty-consultant-across-all-organizations-while-organization-users-can-only-see-their-own-organization-s-support-thread",
+      "featureTitle": "Implement support messaging persistence and routing so that messages typed in the app’s support messages field are stored and are accessible to Firsty (FIRSTY_ADMIN and FIRSTY_CONSULTANT) across all organizations, while organization users can only see their own organization’s support thread.",
       "files": [
-        "frontend/src/app/layout/Topbar.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "blob-storage@4.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-apply-the-provided-color-palette-globally-using-tailwind-shadcn-theme-variables-so-deep-indigo-1a2b4c-is-the-predominant-color-slate-gray-3e4a59-is-used-for-body-text-ice-white-f4f7f9-is-used-for-backgrounds-and-sage-green-7a918d-is-used-only-as-an-accent-ensure-high-contrast-and-avoid-vibrant-neon-pink-purple-colors",
-      "featureTitle": "Apply the provided color palette globally using Tailwind/Shadcn theme variables so Deep Indigo (#1A2B4C) is the predominant color, Slate Gray (#3E4A59) is used for body text, Ice White (#F4F7F9) is used for backgrounds, and Sage Green (#7A918D) is used only as an accent; ensure high contrast and avoid vibrant neon/pink/purple colors.",
-      "files": [
-        "frontend/src/index.css",
-        "frontend/tailwind.config.js"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "blob-storage@4.0.0"
-      ],
-      "testIds": [
-        "REQ-3"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-set-inter-as-the-default-sans-serif-font-across-the-app-and-enforce-the-typography-hierarchy-titles-semibold-subtitles-medium-body-regular",
-      "featureTitle": "Set Inter as the default sans-serif font across the app and enforce the typography hierarchy: titles semibold, subtitles medium, body regular.",
-      "files": [
-        "frontend/index.html",
-        "frontend/src/index.css",
-        "frontend/src/pages/auth/LoginPage.tsx",
-        "frontend/src/pages/internal/DashboardPage.tsx",
-        "frontend/tailwind.config.js"
+        "frontend/src/data/api/backendClient.ts",
+        "frontend/src/data/mock/mockClient.ts",
+        "frontend/src/pages/portal/MessagesPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -63,6 +20,33 @@
       ],
       "testIds": [
         "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-the-frontend-backend-mode-integration-so-authentication-and-role-resolution-come-from-the-backend-internet-identity-backend-role-context-and-add-an-organization-selector-filter-ux-for-firsty-roles-to-choose-which-organization-they-are-currently-viewing-operating-on",
+      "featureTitle": "Update the frontend backend-mode integration so authentication and role resolution come from the backend (Internet Identity + backend role context), and add an organization selector/filter UX for Firsty roles to choose which organization they are currently viewing/operating on.",
+      "files": [
+        "frontend/src/app/layout/Topbar.tsx",
+        "frontend/src/app/router/PostAuthLanding.tsx",
+        "frontend/src/auth/AuthProvider.tsx",
+        "frontend/src/auth/InternetIdentityAuthAdapter.ts",
+        "frontend/src/data/api/backendClient.ts",
+        "frontend/src/org/OrgProvider.tsx",
+        "frontend/src/pages/auth/SelectOrganizationPage.tsx",
+        "frontend/src/types/model.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
       ],
       "confidence": "high"
     }

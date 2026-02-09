@@ -19,6 +19,28 @@ export interface Activity {
   'completed' : boolean,
   'dueDate' : [] | [bigint],
 }
+export type AppUserRole = { 'FIRSTY_CONSULTANT' : null } |
+  { 'FIRSTY_ADMIN' : null } |
+  { 'OWNER_ADMIN' : null } |
+  { 'MEMBER' : null };
+export interface CancellationStats { 'count' : bigint, 'reason' : string }
+export interface ChurnOverview {
+  'periodNetPromoterScore' : number,
+  'periodRetentionRate' : number,
+  'orgId' : OrgId,
+  'totalContracts' : bigint,
+  'periodChurnRate' : number,
+  'periodActiveContracts' : bigint,
+  'cancellationReasons' : Array<[string, bigint]>,
+  'periodCancelledContracts' : bigint,
+  'totalCancelledContracts' : bigint,
+  'periodCanceledContracts' : bigint,
+}
+export interface ChurnParams {
+  'startTime' : bigint,
+  'endTime' : bigint,
+  'orgId' : OrgId,
+}
 export interface Contact {
   'id' : string,
   'orgId' : OrgId,
@@ -29,9 +51,11 @@ export interface Contact {
 }
 export interface Contract {
   'id' : string,
+  'isCancelled' : boolean,
   'endDate' : [] | [bigint],
   'value' : bigint,
   'orgId' : OrgId,
+  'cancellationReason' : string,
   'name' : string,
   'createdBy' : Principal,
   'startDate' : bigint,
@@ -90,6 +114,18 @@ export interface NpsCampaign {
   'createdAt' : bigint,
   'createdBy' : Principal,
 }
+export interface NpsResponse {
+  'orgId' : OrgId,
+  'campaignId' : string,
+  'submittedAt' : bigint,
+  'submittedBy' : Principal,
+  'score' : bigint,
+  'comment' : string,
+  'recommendReason' : string,
+  'isSuccessStory' : boolean,
+  'notRecommendReason' : string,
+  'contractId' : string,
+}
 export type OrgId = string;
 export interface Organization {
   'id' : OrgId,
@@ -117,6 +153,13 @@ export interface Report {
   'reportType' : string,
   'format' : string,
 }
+export interface SupportMessage {
+  'id' : string,
+  'orgId' : OrgId,
+  'sentAt' : bigint,
+  'sentBy' : Principal,
+  'message' : string,
+}
 export interface TeamInvitation {
   'id' : string,
   'status' : string,
@@ -126,6 +169,7 @@ export interface TeamInvitation {
   'inviteeIdentifier' : string,
 }
 export interface UserProfile {
+  'appRole' : AppUserRole,
   'email' : string,
   'currentOrgId' : [] | [OrgId],
   'lastName' : string,
@@ -164,6 +208,7 @@ export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'addMemberToOrg' : ActorMethod<[Principal, OrgId], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'cancelContract' : ActorMethod<[string, string], undefined>,
   'createActivity' : ActorMethod<[Activity], undefined>,
   'createContact' : ActorMethod<[Contact], undefined>,
   'createContract' : ActorMethod<[Contract], undefined>,
@@ -174,21 +219,38 @@ export interface _SERVICE {
   'createProject' : ActorMethod<[Project], undefined>,
   'generateReport' : ActorMethod<[Report], undefined>,
   'getActivity' : ActorMethod<[string], [] | [Activity]>,
+  'getAllSupportMessages' : ActorMethod<[], Array<SupportMessage>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getCancellationStats' : ActorMethod<[OrgId], Array<CancellationStats>>,
+  'getChurnOverview' : ActorMethod<[ChurnParams], ChurnOverview>,
   'getContact' : ActorMethod<[string], [] | [Contact]>,
   'getContract' : ActorMethod<[string], [] | [Contract]>,
   'getDeal' : ActorMethod<[string], [] | [Deal]>,
   'getDocument' : ActorMethod<[string], [] | [Document]>,
   'getFinanceTransaction' : ActorMethod<[string], [] | [FinanceTransaction]>,
   'getNpsCampaign' : ActorMethod<[string], [] | [NpsCampaign]>,
+  'getNpsResponseByContract' : ActorMethod<[string], Array<NpsResponse>>,
+  'getNpsResponses' : ActorMethod<[OrgId], Array<NpsResponse>>,
+  'getNpsResponsesByCampaign' : ActorMethod<[string], Array<NpsResponse>>,
+  'getNpsResponsesExist' : ActorMethod<[OrgId], boolean>,
+  'getNpsResponsesForPeriod' : ActorMethod<
+    [OrgId, bigint, bigint],
+    Array<NpsResponse>
+  >,
+  'getNpsResponsesForTimeFrame' : ActorMethod<
+    [OrgId, string, bigint, bigint],
+    Array<NpsResponse>
+  >,
   'getOrganization' : ActorMethod<[OrgId], [] | [Organization]>,
   'getProject' : ActorMethod<[string], [] | [Project]>,
   'getReport' : ActorMethod<[string], [] | [Report]>,
+  'getSupportMessages' : ActorMethod<[OrgId], Array<SupportMessage>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'inviteTeamMember' : ActorMethod<[TeamInvitation], undefined>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'listActivities' : ActorMethod<[OrgId], Array<Activity>>,
+  'listCancelledContracts' : ActorMethod<[OrgId], Array<Contract>>,
   'listContacts' : ActorMethod<[OrgId], Array<Contact>>,
   'listContracts' : ActorMethod<[OrgId], Array<Contract>>,
   'listDeals' : ActorMethod<[OrgId], Array<Deal>>,
@@ -200,6 +262,8 @@ export interface _SERVICE {
   'listReports' : ActorMethod<[OrgId], Array<Report>>,
   'listTeamInvitations' : ActorMethod<[OrgId], Array<TeamInvitation>>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'sendSupportMessage' : ActorMethod<[string, OrgId, bigint], undefined>,
+  'submitNpsResponse' : ActorMethod<[NpsResponse], undefined>,
   'uploadDocument' : ActorMethod<[DocumentUploadInput], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;

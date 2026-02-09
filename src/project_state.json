@@ -1,37 +1,27 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "App being updated to use a defined visual identity (color palette + typography) globally, and replace the global header top image with the provided image/logo.",
+  "summary": "Build backend to persist all app data (forms, documents, notes, etc.) with authentication and role-based access for organizations/companies and members, including Firsty owner/admin global access and a support messaging channel directed to Firsty.",
   "architectural_notes": [
-    "Global UI theme: Primary color #1A2B4C (predominant), supporting colors #3E4A59, #F4F7F9, accent #7A918D (use sparingly); prioritize high contrast; avoid neon/vibrant colors (pink/purple).",
-    "Typography: Use Inter (sans-serif) globally; titles semibold, subtitles medium, body regular.",
-    "Header: Global header uses provided image/logo in place of existing top image."
+    "Multi-tenant model: admins/members restricted to a single organization; Firsty roles can access all organizations via filter and can edit across orgs.",
+    "Auth may use Internet Identity (passkey) as acceptable option per user."
   ],
   "known_issues": [],
   "isFixRequest": false,
-  "imageRequirements": "## Edit Images\n- Convert the uploaded logo into a square mark with transparent background (Variação do nome completo (1).png > firsty-logo-mark.dim_512x512.png)\n- Convert the uploaded logo into a horizontal wordmark with transparent background (Variação do nome completo (1).png > firsty-wordmark.dim_1200x300.png)",
   "existing_features": [
     {
-      "id": "feature-replace-the-current-logo-images-in-the-global-header-topbar-with-the-new-logo-asset-s-generated-from-the-uploaded-image",
-      "title": "Replace the current logo images in the global header (Topbar) with the new logo asset(s) generated from the uploaded image.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-apply-the-provided-color-palette-globally-using-tailwind-shadcn-theme-variables-so-deep-indigo-1a2b4c-is-the-predominant-color-slate-gray-3e4a59-is-used-for-body-text-ice-white-f4f7f9-is-used-for-backgrounds-and-sage-green-7a918d-is-used-only-as-an-accent-ensure-high-contrast-and-avoid-vibrant-neon-pink-purple-colors",
-      "title": "Apply the provided color palette globally using Tailwind/Shadcn theme variables so Deep Indigo (#1A2B4C) is the predominant color, Slate Gray (#3E4A59) is used for body text, Ice White (#F4F7F9) is used for backgrounds, and Sage Green (#7A918D) is used only as an accent; ensure high contrast and avoid vibrant neon/pink/purple colors.",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-set-inter-as-the-default-sans-serif-font-across-the-app-and-enforce-the-typography-hierarchy-titles-semibold-subtitles-medium-body-regular",
-      "title": "Set Inter as the default sans-serif font across the app and enforce the typography hierarchy: titles semibold, subtitles medium, body regular.",
+      "id": "feature-implement-support-messaging-persistence-and-routing-so-that-messages-typed-in-the-app-s-support-messages-field-are-stored-and-are-accessible-to-firsty-firsty-admin-and-firsty-consultant-across-all-organizations-while-organization-users-can-only-see-their-own-organization-s-support-thread",
+      "title": "Implement support messaging persistence and routing so that messages typed in the app’s support messages field are stored and are accessible to Firsty (FIRSTY_ADMIN and FIRSTY_CONSULTANT) across all organizations, while organization users can only see their own organization’s support thread.",
       "reqIds": [
         "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-frontend-backend-mode-integration-so-authentication-and-role-resolution-come-from-the-backend-internet-identity-backend-role-context-and-add-an-organization-selector-filter-ux-for-firsty-roles-to-choose-which-organization-they-are-currently-viewing-operating-on",
+      "title": "Update the frontend backend-mode integration so authentication and role resolution come from the backend (Internet Identity + backend role context), and add an organization selector/filter UX for Firsty roles to choose which organization they are currently viewing/operating on.",
+      "reqIds": [
+        "REQ-5"
       ],
       "version": 1
     }
@@ -39,26 +29,54 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Replace the image at the top of the global header with the provided image/logo",
+      "summary": "Backend data persistence for all app entities (contatos, oportunidade, atividade, contrato, transação, NPS, tarefas, reuniões, documentos, mensagens, membros, organização)",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Apply the specified visual identity globally (primary deep indigo #1A2B4C, support colors, usage rules) and set Inter as the default sans-serif font with defined weight hierarchy",
+      "summary": "Authentication system with login plus member/company creation",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-3",
-      "summary": "Add the uploaded logo image as static assets under frontend/public/assets/generated and standardize filenames so they can be referenced by the UI.",
+      "summary": "Role-based access control: members/admin belong to one company; Firsty consultor/admin have full access across all companies with company filter and edit permissions",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Support messaging feature: messages typed in the app are routed to Firsty owners/admins (support inbox)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Implement durable (upgrade-safe) persistence for all backend collections used by the app so that created/edited data remains saved across canister upgrades, including organizations, user profiles, memberships, CRM entities, finance, NPS, documents, reports, and invitations.",
       "reqIds": [
         "REQ-1"
       ],
       "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Add backend support for organization and membership management with the following rules: (1) OWNER_ADMIN and MEMBER users belong to exactly one organization; (2) FIRSTY_ADMIN and FIRSTY_CONSULTANT have access to all organizations; (3) FIRSTY_ADMIN and FIRSTY_CONSULTANT can edit data for any organization.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "Implement backend APIs needed by the existing frontend data client to fully persist the app’s entities (create, list, get, update, delete where applicable) for: contacts, deals/opportunities, activities, contracts, finance transactions, NPS (campaigns and responses as currently modeled), documents (including upload metadata), reports, projects, and team invitations/members.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "status": "pending"
     }
   ],
-  "projectName": "Apply global visual identity (Deep Indigo palette + Inter) and replace global header logo",
+  "projectName": "Implement persistent backend storage, Internet Identity auth, and role-based org access (including Firsty global access)",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

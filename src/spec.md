@@ -1,12 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Apply the Deep Indigo visual identity (palette + Inter typography) across the app and replace the global header (Topbar) logo with the uploaded branding.
+**Goal:** Tornar o app totalmente funcional em modo BACKEND, com autenticação via Internet Identity, persistência durável (upgrade-safe) e controle de acesso por organização baseado em papéis (incluindo acesso global da Firsty).
 
 **Planned changes:**
-- Add new, standardized logo assets under `frontend/public/assets/generated` (stable filenames suitable for UI references).
-- Update the global header (Topbar) to render the new logo asset(s) instead of the current `firsty-logo-mark` and `firsty-wordmark` images, keeping the logo aligned within the existing 64px header height.
-- Apply the provided color palette globally via Tailwind/Shadcn theme variables: Deep Indigo (`#1A2B4C`) as predominant, Slate Gray (`#3E4A59`) for body text, Ice White (`#F4F7F9`) for backgrounds, and Sage Green (`#7A918D`) only as an accent; maintain high contrast and avoid vibrant neon/pink/purple colors.
-- Load and set Inter as the default sans-serif font across the app, enforcing the hierarchy: titles semibold, subtitles medium, body regular.
+- Implementar persistência durável (resistente a upgrades) para todas as coleções do backend atualmente mantidas em memória, cobrindo organizações, perfis de usuário, memberships e todas as entidades do app (CRM, financeiro, NPS, documentos, relatórios, convites e mensagens de suporte).
+- Adicionar gerenciamento de organizações e memberships no backend com regras de acesso: OWNER_ADMIN/MEMBER vinculados a uma única organização; FIRSTY_ADMIN/FIRSTY_CONSULTANT com acesso (leitura/escrita) a todas as organizações.
+- Implementar no backend as APIs necessárias para o cliente de dados existente persistir as entidades do app (CRUD conforme aplicável), removendo/evitando caminhos “Not implemented in backend”.
+- Persistir e rotear mensagens de suporte por organização, permitindo que usuários da organização vejam apenas seu próprio thread e que papéis Firsty listem e respondam threads de todas as organizações.
+- Atualizar a integração do frontend em modo BACKEND para obter autenticação e contexto de papel/organização a partir do backend (Internet Identity + role context) e incluir um seletor/filtro de organização para papéis Firsty, aplicando a seleção a todas as telas com dados por organização.
 
-**User-visible outcome:** The app uses the new Deep Indigo visual identity and Inter typography throughout, and the global header displays the updated logo without layout overflow.
+**User-visible outcome:** Em modo BACKEND, usuários autenticam com Internet Identity; dados continuam disponíveis após upgrades; usuários comuns operam apenas na própria organização, enquanto perfis Firsty conseguem visualizar/selecionar qualquer organização e ler/editar dados e mensagens de suporte entre organizações.

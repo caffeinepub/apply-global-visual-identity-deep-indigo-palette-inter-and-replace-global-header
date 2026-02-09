@@ -83,17 +83,20 @@ function BackendAuthWrapper({ children }: { children: ReactNode }) {
 
         if (cancelled) return;
 
+        // Adaptar identidade usando o perfil do backend (que inclui appRole)
         const iiUser = adaptIdentityToUser(identity!, profile, undefined);
         
         setUser({
           id: iiUser.principal,
           name: iiUser.name || 'Usuário',
+          email: profile?.email,
           role: iiUser.role,
           principal: iiUser.principal,
         });
       } catch (error) {
         console.error('Erro ao carregar perfil:', error);
         if (!cancelled) {
+          // Fallback: criar usuário com role padrão
           setUser({
             id: identity!.getPrincipal().toString(),
             name: 'Usuário',

@@ -1,83 +1,103 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T18:52:56.123Z",
+  "generatedAt": "2026-02-09T23:35:16.358Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
-    "implemented": 3,
+    "total": 5,
+    "implemented": 2,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Add the uploaded logo image as static assets under frontend/public/assets/generated and standardize filenames so they can be referenced by the UI.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/public/assets/generated/fy-logo-mark.dim_512x512.png",
-          "frontend/public/assets/generated/fy-wordmark.dim_1200x300.png"
-        ],
+        "summary": "Implement durable (upgrade-safe) persistence for all backend collections used by the app so that created/edited data remains saved across canister upgrades, including organizations, user profiles, memberships, CRM entities, finance, NPS, documents, reports, and invitations.",
+        "status": "unknown",
+        "plannedFiles": [],
         "matchedFiles": []
       },
       {
         "id": "REQ-2",
-        "summary": "Replace the current logo images in the global header (Topbar) with the new logo asset(s) generated from the uploaded image.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/app/layout/Topbar.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/app/layout/Topbar.tsx"
-        ]
+        "summary": "Add backend support for organization and membership management with the following rules: (1) OWNER_ADMIN and MEMBER users belong to exactly one organization; (2) FIRSTY_ADMIN and FIRSTY_CONSULTANT have access to all organizations; (3) FIRSTY_ADMIN and FIRSTY_CONSULTANT can edit data for any organization.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       },
       {
         "id": "REQ-3",
-        "summary": "Apply the provided color palette globally using Tailwind/Shadcn theme variables so Deep Indigo (#1A2B4C) is the predominant color, Slate Gray (#3E4A59) is used for body text, Ice White (#F4F7F9) is used for backgrounds, and Sage Green (#7A918D) is used only as an accent; ensure high contrast and avoid vibrant neon/pink/purple colors.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/index.css",
-          "frontend/tailwind.config.js"
-        ],
-        "matchedFiles": [
-          "frontend/src/index.css",
-          "frontend/tailwind.config.js"
-        ]
+        "summary": "Implement backend APIs needed by the existing frontend data client to fully persist the app’s entities (create, list, get, update, delete where applicable) for: contacts, deals/opportunities, activities, contracts, finance transactions, NPS (campaigns and responses as currently modeled), documents (including upload metadata), reports, projects, and team invitations/members.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       },
       {
         "id": "REQ-4",
-        "summary": "Set Inter as the default sans-serif font across the app and enforce the typography hierarchy: titles semibold, subtitles medium, body regular.",
+        "summary": "Implement support messaging persistence and routing so that messages typed in the app’s support messages field are stored and are accessible to Firsty (FIRSTY_ADMIN and FIRSTY_CONSULTANT) across all organizations, while organization users can only see their own organization’s support thread.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/index.html",
-          "frontend/tailwind.config.js",
-          "frontend/src/index.css",
-          "frontend/src/pages/auth/LoginPage.tsx",
-          "frontend/src/pages/internal/DashboardPage.tsx"
+          "frontend/src/pages/portal/MessagesPage.tsx",
+          "frontend/src/data/api/backendClient.ts",
+          "frontend/src/data/mock/mockClient.ts",
+          "frontend/src/data/client.ts"
         ],
         "matchedFiles": [
-          "frontend/index.html",
-          "frontend/tailwind.config.js",
-          "frontend/src/index.css",
-          "frontend/src/pages/auth/LoginPage.tsx",
-          "frontend/src/pages/internal/DashboardPage.tsx"
+          "frontend/src/pages/portal/MessagesPage.tsx",
+          "frontend/src/data/api/backendClient.ts",
+          "frontend/src/data/mock/mockClient.ts"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Update the frontend backend-mode integration so authentication and role resolution come from the backend (Internet Identity + backend role context), and add an organization selector/filter UX for Firsty roles to choose which organization they are currently viewing/operating on.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/auth/AuthProvider.tsx",
+          "frontend/src/auth/InternetIdentityAuthAdapter.ts",
+          "frontend/src/types/model.ts",
+          "frontend/src/org/OrgProvider.tsx",
+          "frontend/src/pages/auth/SelectOrganizationPage.tsx",
+          "frontend/src/app/layout/Topbar.tsx",
+          "frontend/src/app/router/PostAuthLanding.tsx",
+          "frontend/src/data/api/backendClient.ts",
+          "frontend/src/backend.d.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/auth/AuthProvider.tsx",
+          "frontend/src/auth/InternetIdentityAuthAdapter.ts",
+          "frontend/src/types/model.ts",
+          "frontend/src/org/OrgProvider.tsx",
+          "frontend/src/pages/auth/SelectOrganizationPage.tsx",
+          "frontend/src/app/layout/Topbar.tsx",
+          "frontend/src/app/router/PostAuthLanding.tsx",
+          "frontend/src/data/api/backendClient.ts",
+          "frontend/src/backend.d.ts"
         ]
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/index.html",
-    "frontend/public/assets/generated/firsty-logo-mark.dim_512x512.png",
-    "frontend/public/assets/generated/firsty-wordmark.dim_1200x300.png",
     "frontend/src/app/layout/Topbar.tsx",
-    "frontend/src/index.css",
-    "frontend/src/pages/auth/LoginPage.tsx",
-    "frontend/src/pages/internal/DashboardPage.tsx",
-    "frontend/tailwind.config.js",
+    "frontend/src/app/router/PostAuthLanding.tsx",
+    "frontend/src/auth/AuthProvider.tsx",
+    "frontend/src/auth/InternetIdentityAuthAdapter.ts",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/data/api/backendClient.ts",
+    "frontend/src/data/mock/mockClient.ts",
+    "frontend/src/data/mock/seed.ts",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/org/OrgProvider.tsx",
+    "frontend/src/pages/auth/SelectOrganizationPage.tsx",
+    "frontend/src/pages/portal/MessagesPage.tsx",
+    "frontend/src/types/model.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

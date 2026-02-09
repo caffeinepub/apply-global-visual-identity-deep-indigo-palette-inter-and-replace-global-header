@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import { useAuth } from '../../auth/AuthProvider';
 import { useCurrentOrg } from '../../org/OrgProvider';
 import { isMockMode } from '../../config/dataMode';
@@ -12,27 +13,26 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { User, LogOut, Building2 } from 'lucide-react';
+import { User, LogOut, Building2, RefreshCw } from 'lucide-react';
+import { BrandLogo } from '@/components/BrandLogo';
 
 export function Topbar() {
   const { user, logout } = useAuth();
   const { currentOrg } = useCurrentOrg();
+  const navigate = useNavigate();
+
+  const isFirstyRole = user?.role === 'FIRSTY_ADMIN' || user?.role === 'FIRSTY_CONSULTANT';
+
+  const handleSwitchOrg = () => {
+    navigate({ to: '/selecionar-organizacao' });
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center px-4">
         {/* Logo */}
-        <div className="flex items-center gap-3">
-          <img 
-            src="/assets/generated/fy-logo-mark.dim_512x512.png" 
-            alt="First-Y" 
-            className="h-8 w-8"
-          />
-          <img 
-            src="/assets/generated/fy-wordmark.dim_1200x300.png" 
-            alt="First-Y" 
-            className="h-6 hidden sm:block"
-          />
+        <div className="flex items-center">
+          <BrandLogo className="h-12 w-auto object-contain" />
         </div>
 
         <div className="flex-1" />
@@ -63,6 +63,16 @@ export function Topbar() {
                   <p className="text-xs text-muted-foreground capitalize font-normal">{user.role.replace('_', ' ')}</p>
                 </div>
               </DropdownMenuLabel>
+              
+              {isFirstyRole && currentOrg && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSwitchOrg}>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Trocar Organização
+                  </DropdownMenuItem>
+                </>
+              )}
               
               {isMockMode() && (
                 <>

@@ -23,6 +23,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { BrandLogo } from '@/components/BrandLogo';
 
 interface NavSection {
   label: string;
@@ -164,6 +165,11 @@ export function Sidebar() {
   return (
     <aside className="hidden lg:fixed lg:inset-y-0 lg:z-40 lg:flex lg:w-72 lg:flex-col lg:pt-16">
       <div className="flex grow flex-col gap-y-6 overflow-y-auto border-r bg-background px-4 py-6">
+        {/* Sidebar Logo Header */}
+        <div className="flex items-center justify-center px-3 pb-4 border-b">
+          <BrandLogo className="h-14 w-auto object-contain" />
+        </div>
+
         {showInternal && (
           <nav className="flex flex-1 flex-col">
             <div className="mb-3 px-3">

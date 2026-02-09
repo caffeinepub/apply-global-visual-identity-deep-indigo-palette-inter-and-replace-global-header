@@ -15,6 +15,8 @@ import type {
   Activity,
   Contract,
   FinanceTransaction,
+  NpsCampaign,
+  NpsResponse,
 } from '../../types/model';
 
 // ============================================================================
@@ -54,11 +56,11 @@ export const mockUsers: User[] = [
     createdAt: new Date('2025-01-02'),
   },
   {
-    id: 'user-client-1',
+    id: 'user-member-2',
     orgId: 'org-1',
-    role: 'CLIENT',
+    role: 'MEMBER',
     name: 'Maria Oliveira',
-    email: 'maria.oliveira@cliente.com.br',
+    email: 'maria.oliveira@empresa.com.br',
     isActive: true,
     createdAt: new Date('2025-01-03'),
   },
@@ -136,12 +138,12 @@ export const mockProjects: Project[] = [
 
 export const mockProjectMembers: ProjectMember[] = [
   // Projeto Solo
-  { orgId: 'org-1', projectId: 'project-solo-1', userId: 'user-client-1', role: 'client' },
+  { orgId: 'org-1', projectId: 'project-solo-1', userId: 'user-member-2', role: 'client' },
   { orgId: 'org-1', projectId: 'project-solo-1', userId: 'user-consultant-1', role: 'firsty' },
   { orgId: 'org-1', projectId: 'project-solo-1', userId: 'user-owner-1', role: 'admin' },
   
   // Projeto SME
-  { orgId: 'org-1', projectId: 'project-sme-1', userId: 'user-client-1', role: 'client' },
+  { orgId: 'org-1', projectId: 'project-sme-1', userId: 'user-member-2', role: 'client' },
   { orgId: 'org-1', projectId: 'project-sme-1', userId: 'user-member-1', role: 'member' },
   { orgId: 'org-1', projectId: 'project-sme-1', userId: 'user-consultant-1', role: 'firsty' },
   { orgId: 'org-1', projectId: 'project-sme-1', userId: 'user-owner-1', role: 'admin' },
@@ -162,7 +164,7 @@ export const mockTasks: Task[] = [
     status: 'done',
     pillar: 'Estratégia',
     dueDate: new Date('2025-01-20'),
-    ownerUserId: 'user-client-1',
+    ownerUserId: 'user-member-2',
     ownerRole: 'client',
     createdAt: new Date('2025-01-15'),
   },
@@ -175,7 +177,7 @@ export const mockTasks: Task[] = [
     status: 'doing',
     pillar: 'Financeiro',
     dueDate: new Date('2025-02-10'),
-    ownerUserId: 'user-client-1',
+    ownerUserId: 'user-member-2',
     ownerRole: 'client',
     createdAt: new Date('2025-01-22'),
   },
@@ -188,7 +190,7 @@ export const mockTasks: Task[] = [
     status: 'todo',
     pillar: 'Estratégia',
     dueDate: new Date('2025-02-15'),
-    ownerUserId: 'user-client-1',
+    ownerUserId: 'user-member-2',
     ownerRole: 'client',
     createdAt: new Date('2025-01-22'),
   },
@@ -436,7 +438,7 @@ export const mockMessages: Message[] = [
     orgId: 'org-1',
     projectId: 'project-solo-1',
     text: 'Olá! Estou animada para começar nossa jornada. Tenho algumas dúvidas sobre o plano estratégico.',
-    createdBy: 'user-client-1',
+    createdBy: 'user-member-2',
     createdByRole: 'client',
     createdAt: new Date('2025-01-16T09:30:00'),
   },
@@ -454,7 +456,7 @@ export const mockMessages: Message[] = [
     orgId: 'org-1',
     projectId: 'project-solo-1',
     text: 'Perfeito! Até lá.',
-    createdBy: 'user-client-1',
+    createdBy: 'user-member-2',
     createdByRole: 'client',
     createdAt: new Date('2025-01-16T10:20:00'),
   },
@@ -585,6 +587,21 @@ export const mockContacts: Contact[] = [
     createdAt: new Date('2024-11-15'),
     updatedAt: new Date('2025-01-20'),
   },
+  {
+    id: 'contact-3',
+    orgId: 'org-1',
+    name: 'Pedro Martins',
+    email: 'pedro@empresa.com',
+    phone: '(11) 91234-5678',
+    company: 'Empresa ABC',
+    tags: ['cliente'],
+    status: 'ativo',
+    ownerUserId: 'user-owner-1',
+    notes: '',
+    attachments: [],
+    createdAt: new Date('2024-10-01'),
+    updatedAt: new Date('2024-10-01'),
+  },
 ];
 
 // ============================================================================
@@ -621,9 +638,22 @@ export const mockActivities: Activity[] = [
     ownerUserId: 'user-owner-1',
     relatedType: 'deal',
     relatedId: 'deal-1',
-    notes: 'Apresentação da proposta final',
+    notes: 'Apresentação da proposta para Tech Solutions',
     createdAt: new Date('2025-01-28'),
     updatedAt: new Date('2025-01-28'),
+  },
+  {
+    id: 'activity-2',
+    orgId: 'org-1',
+    type: 'task',
+    dueDate: new Date('2025-02-05T10:00:00'),
+    status: 'done',
+    ownerUserId: 'user-member-1',
+    relatedType: 'contact',
+    relatedId: 'contact-2',
+    notes: 'Follow-up mensal com cliente',
+    createdAt: new Date('2025-01-20'),
+    updatedAt: new Date('2025-02-03'),
   },
 ];
 
@@ -637,17 +667,43 @@ export const mockContracts: Contract[] = [
     orgId: 'org-1',
     contactId: 'contact-2',
     name: 'Consultoria Mensal - Startup Inovadora',
-    mrr: 3500,
-    startDate: new Date('2024-12-01'),
-    renewalDate: new Date('2025-12-01'),
+    mrr: 5000,
+    startDate: new Date('2024-11-01'),
+    renewalDate: new Date('2025-11-01'),
     status: 'active',
-    createdAt: new Date('2024-11-20'),
-    updatedAt: new Date('2024-12-01'),
+    createdAt: new Date('2024-10-25'),
+    updatedAt: new Date('2024-11-01'),
+  },
+  {
+    id: 'contract-2',
+    orgId: 'org-1',
+    contactId: 'contact-3',
+    name: 'Projeto Pontual - Empresa ABC',
+    mrr: 3000,
+    startDate: new Date('2024-10-01'),
+    renewalDate: new Date('2025-01-31'),
+    status: 'active',
+    createdAt: new Date('2024-09-25'),
+    updatedAt: new Date('2024-10-01'),
+  },
+  {
+    id: 'contract-3',
+    orgId: 'org-1',
+    contactId: 'contact-1',
+    name: 'Consultoria Trimestral - Tech Solutions (Cancelado)',
+    mrr: 8000,
+    startDate: new Date('2024-06-01'),
+    renewalDate: new Date('2024-12-01'),
+    status: 'canceled',
+    cancelDate: new Date('2024-11-15'),
+    cancelReason: 'Cliente optou por solução interna',
+    createdAt: new Date('2024-05-20'),
+    updatedAt: new Date('2024-11-15'),
   },
 ];
 
 // ============================================================================
-// FINANCEIRO (para área interna)
+// FINANCEIRO
 // ============================================================================
 
 export const mockFinanceTransactions: FinanceTransaction[] = [
@@ -656,9 +712,9 @@ export const mockFinanceTransactions: FinanceTransaction[] = [
     orgId: 'org-1',
     type: 'income',
     date: new Date('2025-01-05'),
-    value: 3500,
+    value: 5000,
     category: 'Consultoria',
-    description: 'Pagamento mensal - Startup Inovadora',
+    description: 'Pagamento Startup Inovadora - Janeiro',
     isRecurring: true,
     createdAt: new Date('2025-01-05'),
     updatedAt: new Date('2025-01-05'),
@@ -666,13 +722,94 @@ export const mockFinanceTransactions: FinanceTransaction[] = [
   {
     id: 'fin-2',
     orgId: 'org-1',
-    type: 'expense',
+    type: 'income',
     date: new Date('2025-01-10'),
-    value: 500,
-    category: 'Software',
-    description: 'Assinatura CRM',
-    isRecurring: true,
+    value: 3000,
+    category: 'Projeto',
+    description: 'Pagamento Empresa ABC - Projeto Pontual',
+    isRecurring: false,
     createdAt: new Date('2025-01-10'),
     updatedAt: new Date('2025-01-10'),
+  },
+  {
+    id: 'fin-3',
+    orgId: 'org-1',
+    type: 'expense',
+    date: new Date('2025-01-15'),
+    value: 1200,
+    category: 'Ferramentas',
+    description: 'Assinatura de software - Janeiro',
+    isRecurring: true,
+    createdAt: new Date('2025-01-15'),
+    updatedAt: new Date('2025-01-15'),
+  },
+  {
+    id: 'fin-4',
+    orgId: 'org-1',
+    type: 'expense',
+    date: new Date('2025-01-20'),
+    value: 800,
+    category: 'Marketing',
+    description: 'Anúncios online - Janeiro',
+    isRecurring: false,
+    createdAt: new Date('2025-01-20'),
+    updatedAt: new Date('2025-01-20'),
+  },
+];
+
+// ============================================================================
+// NPS CAMPAIGNS
+// ============================================================================
+
+export const mockNpsCampaigns: NpsCampaign[] = [
+  {
+    id: 'nps-campaign-1',
+    orgId: 'org-1',
+    periodKey: '2025-01',
+    status: 'active',
+    createdAt: new Date('2025-01-01'),
+    updatedAt: new Date('2025-01-01'),
+  },
+  {
+    id: 'nps-campaign-2',
+    orgId: 'org-1',
+    periodKey: '2024-12',
+    status: 'closed',
+    createdAt: new Date('2024-12-01'),
+    updatedAt: new Date('2025-01-01'),
+  },
+];
+
+// ============================================================================
+// NPS RESPONSES
+// ============================================================================
+
+export const mockNpsResponses: NpsResponse[] = [
+  {
+    id: 'nps-resp-1',
+    orgId: 'org-1',
+    campaignId: 'nps-campaign-2',
+    contactId: 'contact-2',
+    score: 9,
+    comment: 'Excelente consultoria, resultados visíveis em pouco tempo!',
+    createdAt: new Date('2024-12-15'),
+  },
+  {
+    id: 'nps-resp-2',
+    orgId: 'org-1',
+    campaignId: 'nps-campaign-2',
+    contactId: 'contact-3',
+    score: 8,
+    comment: 'Muito bom, atendeu nossas expectativas.',
+    createdAt: new Date('2024-12-18'),
+  },
+  {
+    id: 'nps-resp-3',
+    orgId: 'org-1',
+    campaignId: 'nps-campaign-1',
+    contactId: 'contact-2',
+    score: 10,
+    comment: 'Continuamos muito satisfeitos com o trabalho!',
+    createdAt: new Date('2025-01-20'),
   },
 ];

@@ -25,7 +25,6 @@ export type DocumentId = string;
 export type AppRole = 
   | 'OWNER_ADMIN'
   | 'MEMBER'
-  | 'CLIENT'
   | 'FIRSTY_CONSULTANT'
   | 'FIRSTY_ADMIN';
 
@@ -57,6 +56,7 @@ export interface UserProfile {
   lastName: string;
   email: string;
   currentOrgId?: OrgId;
+  appRole: AppRole;
 }
 
 export interface OrgAccess {

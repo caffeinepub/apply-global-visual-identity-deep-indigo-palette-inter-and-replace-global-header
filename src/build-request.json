@@ -1,107 +1,114 @@
 {
   "kind": "build_request",
-  "title": "Apply global visual identity (Deep Indigo palette + Inter) and replace global header logo",
+  "title": "Implement persistent backend storage, Internet Identity auth, and role-based org access (including Firsty global access)",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Add the uploaded logo image as static assets under frontend/public/assets/generated and standardize filenames so they can be referenced by the UI.",
-      "target": "frontend",
+      "text": "Implement durable (upgrade-safe) persistence for all backend collections used by the app so that created/edited data remains saved across canister upgrades, including organizations, user profiles, memberships, CRM entities, finance, NPS, documents, reports, and invitations.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-1",
-          "msg-2"
+          "msg-1"
         ],
         "quotes": [
-          "Pode colocar essa imagem no lugar da imagem que está no topo?",
-          "1-No header global"
+          "preciso que seja construido o backend para que os dados possam ficar salvos"
         ]
       },
       "acceptanceCriteria": [
-        "The repository contains new logo assets in frontend/public/assets/generated.",
-        "The filenames are stable and referenced consistently by the UI (no direct references to the raw upload filename in JSX)."
+        "After deploying an upgraded canister build, previously created records (e.g., organizations, contacts, deals, contracts, finance transactions, NPS responses, documents metadata) are still retrievable.",
+        "Persistence covers every data collection currently stored in in-memory Maps in backend/main.mo (no silent resets on upgrade)."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Replace the current logo images in the global header (Topbar) with the new logo asset(s) generated from the uploaded image.",
-      "target": "frontend",
+      "text": "Add backend support for organization and membership management with the following rules: (1) OWNER_ADMIN and MEMBER users belong to exactly one organization; (2) FIRSTY_ADMIN and FIRSTY_CONSULTANT have access to all organizations; (3) FIRSTY_ADMIN and FIRSTY_CONSULTANT can edit data for any organization.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-1",
-          "msg-2"
+          "msg-1"
         ],
         "quotes": [
-          "Pode colocar essa imagem no lugar da imagem que está no topo?",
-          "1-No header global"
+          "se for administrador ou membro, apenas a uma empresa. Consultor first-y ou admin firsty deve ter acesso a todas as empresa"
         ]
       },
       "acceptanceCriteria": [
-        "The Topbar no longer renders /assets/generated/firsty-logo-mark.dim_512x512.png and /assets/generated/firsty-wordmark.dim_1200x300.png; it renders the new logo asset(s) instead.",
-        "The header layout remains visually aligned (logo fits within the existing 64px header height without overflow)."
+        "Backend exposes a way to determine the caller’s effective application role (OWNER_ADMIN, MEMBER, FIRSTY_CONSULTANT, FIRSTY_ADMIN) and enforce it for all org-scoped reads/writes.",
+        "Backend enforces single-organization membership for OWNER_ADMIN and MEMBER (attempts to join/create/select a second org are rejected with a clear error).",
+        "FIRSTY_ADMIN and FIRSTY_CONSULTANT can list all organizations and access (read/write) org-scoped entities for any organization."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Apply the provided color palette globally using Tailwind/Shadcn theme variables so Deep Indigo (#1A2B4C) is the predominant color, Slate Gray (#3E4A59) is used for body text, Ice White (#F4F7F9) is used for backgrounds, and Sage Green (#7A918D) is used only as an accent; ensure high contrast and avoid vibrant neon/pink/purple colors.",
+      "text": "Implement backend APIs needed by the existing frontend data client to fully persist the app’s entities (create, list, get, update, delete where applicable) for: contacts, deals/opportunities, activities, contracts, finance transactions, NPS (campaigns and responses as currently modeled), documents (including upload metadata), reports, projects, and team invitations/members.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "contatos, oportunidade, atividade, contrato,transação, nps, tarefas, reuniões, documentos, mensagens, membros, organização."
+        ]
+      },
+      "acceptanceCriteria": [
+        "All methods that are currently stubbed or throw 'Not implemented in backend' in frontend/src/data/api/backendClient.ts have working backend implementations (or are removed from the frontend if not needed by any screen).",
+        "Org access checks are applied consistently: org members can only access their org; Firsty roles can access all orgs.",
+        "Create operations correctly set server-side fields that must be trusted (e.g., createdBy, timestamps) rather than trusting arbitrary client input.",
+        "List endpoints return only entities belonging to the requested org (except Firsty global listing when applicable)."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Implement support messaging persistence and routing so that messages typed in the app’s support messages field are stored and are accessible to Firsty (FIRSTY_ADMIN and FIRSTY_CONSULTANT) across all organizations, while organization users can only see their own organization’s support thread.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "mensagens de suporte no campo de mensagens.",
+          "as mensagens digitadas no app serão direcionadas pra gente."
+        ]
+      },
+      "acceptanceCriteria": [
+        "An org-scoped support message thread can be listed and appended to by authorized org users.",
+        "FIRSTY_ADMIN and FIRSTY_CONSULTANT can list support message threads across organizations and read/respond to them.",
+        "Support messages are persisted in the backend and remain after reload and after upgrades.",
+        "The existing portal messages UI (frontend/src/pages/portal/MessagesPage.tsx) uses backend mode to read/send messages without falling back to in-memory mock data."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Update the frontend backend-mode integration so authentication and role resolution come from the backend (Internet Identity + backend role context), and add an organization selector/filter UX for Firsty roles to choose which organization they are currently viewing/operating on.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "E deixar o aplicativo dentro dessa identidade visual abaixo:\nAzul Anil Profundo\n\n`#1A2B4C`\n\nCores de Apoio\n\n- Cinza Ardósia – `#3E4A59`\n- Branco Gelo – `#F4F7F9`\n- Verde Sálvia – `#7A918D`\n\nRegras de uso\n\n- O azul deve ser predominante\n- Verde apenas como acento\n- Priorizar alto contraste\n- Evitar cores vibrantes (neon, rosa, roxo)"
+          "Consultor first-y ou admin firsty deve ter acesso a todas as empresa, pode colocar um filtro para selecionar qual."
         ]
       },
       "acceptanceCriteria": [
-        "Primary actions, active navigation states, and key highlights use the Deep Indigo primary color.",
-        "Accent color (Sage Green) appears only in small highlight/accent contexts (e.g., badges, subtle indicators), not as dominant surfaces.",
-        "Text/background contrast remains readable in light mode across key screens (e.g., Login, Dashboard, Documents, Settings)."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Set Inter as the default sans-serif font across the app and enforce the typography hierarchy: titles semibold, subtitles medium, body regular.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-3",
-          "msg-4"
-        ],
-        "quotes": [
-          "pode ser a 1",
-          "Tipografia\n\nEstilo:\n\nSans-serif moderna e funcional\n\nFontes recomendadas:\n\n- Inter\n\nHierarquia\n\n- Títulos: Semi-bold\n- Subtítulos: Medium\n- Texto corrido: Regular"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Inter is loaded by the frontend (e.g., via index.html or CSS) and used as the default sans-serif font throughout the app.",
-        "Headings/titles render with semibold weight, subtitles with medium weight, and body text with regular weight (verified on at least Login and one internal page such as Dashboard)."
+        "When running in BACKEND mode, the app resolves the logged-in user role using backend-provided role context (wired through the existing adaptIdentityToUser(...) path).",
+        "Firsty roles can see/select any organization in the organization selection flow; non-Firsty users only see their single organization.",
+        "Once a Firsty user selects an organization, all org-scoped pages (CRM, finance, NPS, documents, portal pages) load and mutate data for that selected org."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under frontend/src/components/ui (Shadcn components are read-only and must be composed, not modified).",
-    "Do not edit files listed in frontend immutablePaths (e.g., frontend/src/main.tsx, frontend/src/hooks/useActor.ts, frontend/src/hooks/useInternetIdentity.ts/tsx)."
+    "Do not edit any files under frontend/src/components/ui or any paths listed as immutable in SYSTEM_CONTEXT.",
+    "Keep the app’s UI language in Portuguese; do not change existing Portuguese strings to English.",
+    "Backend must remain a single Motoko actor in backend/main.mo; only add backend/migration.mo if state upgrade/migration is required by the persistence changes.",
+    "Authentication must use Internet Identity (no third-party auth providers)."
   ],
   "nonGoals": [
-    "Backend/canister changes (Motoko) are out of scope for this request.",
-    "Fixes to document upload/list behavior or localization work are out of scope for this request."
+    "Implementing real-time chat (WebSockets) or push notifications.",
+    "Integrating external databases or non-IC backend services.",
+    "Adding new product modules beyond the listed entities (contacts, deals, activities, contracts, transactions, NPS, tasks, meetings, documents, messages, members, organization)."
   ],
   "imageRequirements": {
     "required": [],
-    "edits": [
-      "Convert the uploaded logo into a square mark with transparent background (Variação do nome completo (1).png > firsty-logo-mark.dim_512x512.png)",
-      "Convert the uploaded logo into a horizontal wordmark with transparent background (Variação do nome completo (1).png > firsty-wordmark.dim_1200x300.png)"
-    ]
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
+    "edits": []
   }
 }

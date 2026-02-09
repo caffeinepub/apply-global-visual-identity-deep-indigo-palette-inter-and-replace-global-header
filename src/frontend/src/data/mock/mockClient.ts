@@ -1,6 +1,25 @@
+import {
+  mockOrganizations,
+  mockUsers,
+  mockProjects,
+  mockTasks,
+  mockMeetings,
+  mockDeliverables,
+  mockKpis,
+  mockMessages,
+  mockDocuments,
+  mockContacts,
+  mockDeals,
+  mockActivities,
+  mockContracts,
+  mockFinanceTransactions,
+  mockNpsCampaigns,
+  mockNpsResponses,
+} from './seed';
 import type {
   Organization,
   User,
+  UserProfile,
   Project,
   Task,
   Meeting,
@@ -13,51 +32,35 @@ import type {
   Activity,
   Contract,
   FinanceTransaction,
-  OrgId,
-  ProjectId,
-  UserProfile,
-  TaskStatus,
-  Pillar,
-  MeetingCadence,
   NpsCampaign,
+  NpsResponse,
 } from '../../types/model';
-import {
-  mockOrganizations,
-  mockUsers,
-  mockProjects,
-  mockProjectMembers,
-  mockTasks,
-  mockMeetings,
-  mockDeliverables,
-  mockKpis,
-  mockMessages,
-  mockDocuments,
-  mockContacts,
-  mockDeals,
-  mockActivities,
-  mockContracts,
-  mockFinanceTransactions,
-} from './seed';
-import { DocumentCategory } from '../../backend';
 
-/**
- * Cliente mock que simula as operações do backend usando dados locais.
- * Todas as operações são síncronas mas retornam Promises para manter
- * a mesma interface do cliente real.
- */
+// In-memory storage
+let organizations = [...mockOrganizations];
+let users = [...mockUsers];
+let projects = [...mockProjects];
+let tasks = [...mockTasks];
+let meetings = [...mockMeetings];
+let deliverables = [...mockDeliverables];
+let kpis = [...mockKpis];
+let messages = [...mockMessages];
+let documents = [...mockDocuments];
+let contacts = [...mockContacts];
+let deals = [...mockDeals];
+let activities = [...mockActivities];
+let contracts = [...mockContracts];
+let financeTransactions = [...mockFinanceTransactions];
+let npsCampaigns = [...mockNpsCampaigns];
+let npsResponses = [...mockNpsResponses];
 
-// Map backend DocumentCategory enum to display strings (pt-BR)
-const CATEGORY_DISPLAY: Record<DocumentCategory, string> = {
-  [DocumentCategory.contracts]: 'Contratos',
-  [DocumentCategory.invoices]: 'Faturas',
-  [DocumentCategory.presentations]: 'Apresentações',
-  [DocumentCategory.reports]: 'Relatórios',
-  [DocumentCategory.marketing]: 'Marketing',
-  [DocumentCategory.mediaAssets]: 'Mídias',
-  [DocumentCategory.projectDocs]: 'Documentos do Projeto',
-  [DocumentCategory.proposals]: 'Propostas',
-  [DocumentCategory.legal]: 'Jurídico',
-  [DocumentCategory.other]: 'Outros',
+// Simulated user profile
+let currentUserProfile: UserProfile | null = {
+  firstName: 'Ana',
+  lastName: 'Silva',
+  email: 'ana.silva@empresa.com.br',
+  currentOrgId: 'org-1',
+  appRole: 'MEMBER',
 };
 
 // ============================================================================
@@ -65,61 +68,49 @@ const CATEGORY_DISPLAY: Record<DocumentCategory, string> = {
 // ============================================================================
 
 export async function mockListOrgs(): Promise<Organization[]> {
-  return Promise.resolve([...mockOrganizations]);
+  return organizations;
 }
 
-export async function mockGetOrg(orgId: OrgId): Promise<Organization | null> {
-  const org = mockOrganizations.find((o) => o.id === orgId);
-  return Promise.resolve(org || null);
+export async function mockGetOrg(orgId: string): Promise<Organization | null> {
+  return organizations.find(o => o.id === orgId) || null;
 }
 
 export async function mockCreateOrg(name: string): Promise<Organization> {
   const newOrg: Organization = {
     id: `org-${Date.now()}`,
     name,
-    owner: 'current-user',
+    owner: 'user-owner-1',
     createdAt: new Date(),
   };
-  mockOrganizations.push(newOrg);
-  return Promise.resolve(newOrg);
+  organizations.push(newOrg);
+  return newOrg;
 }
 
 // ============================================================================
-// PERFIL DE USUÁRIO
+// PERFIL
 // ============================================================================
 
-export async function mockGetUserProfile(userId: string): Promise<UserProfile | null> {
-  const user = mockUsers.find((u) => u.id === userId);
-  if (!user) return Promise.resolve(null);
-  
-  return Promise.resolve({
-    firstName: user.name.split(' ')[0],
-    lastName: user.name.split(' ').slice(1).join(' '),
-    email: user.email,
-    currentOrgId: user.orgId,
-  });
+export async function mockGetUserProfile(): Promise<UserProfile | null> {
+  return currentUserProfile;
 }
 
 export async function mockSaveUserProfile(profile: UserProfile): Promise<void> {
-  // Em modo mock, apenas simula o salvamento
-  return Promise.resolve();
+  currentUserProfile = profile;
 }
 
 // ============================================================================
 // PROJETOS
 // ============================================================================
 
-export async function mockListProjects(orgId: OrgId): Promise<Project[]> {
-  const projects = mockProjects.filter((p) => p.orgId === orgId);
-  return Promise.resolve(projects);
+export async function mockListProjects(orgId: string): Promise<Project[]> {
+  return projects.filter(p => p.orgId === orgId);
 }
 
-export async function mockGetProject(projectId: ProjectId): Promise<Project | null> {
-  const project = mockProjects.find((p) => p.id === projectId);
-  return Promise.resolve(project || null);
+export async function mockGetProject(projectId: string): Promise<Project | null> {
+  return projects.find(p => p.id === projectId) || null;
 }
 
-export async function mockCreateProject(orgId: OrgId, project: Partial<Project>): Promise<Project> {
+export async function mockCreateProject(orgId: string, project: Partial<Project>): Promise<Project> {
   const newProject: Project = {
     id: `project-${Date.now()}`,
     orgId,
@@ -129,252 +120,202 @@ export async function mockCreateProject(orgId: OrgId, project: Partial<Project>)
     journeyMonths: project.journeyMonths || 3,
     stage: project.stage || 'onboarding',
     startDate: project.startDate || new Date(),
-    createdBy: 'current-user',
+    createdBy: 'user-owner-1',
     createdAt: new Date(),
   };
-  mockProjects.push(newProject);
-  return Promise.resolve(newProject);
+  projects.push(newProject);
+  return newProject;
 }
 
 // ============================================================================
 // TAREFAS
 // ============================================================================
 
-export async function mockListTasks(projectId: ProjectId): Promise<Task[]> {
-  const tasks = mockTasks.filter((t) => t.projectId === projectId);
-  return Promise.resolve(tasks);
+export async function mockListTasks(projectId: string): Promise<Task[]> {
+  return tasks.filter(t => t.projectId === projectId);
 }
 
-export async function mockCreateTask(projectId: ProjectId, task: Partial<Task>): Promise<Task> {
+export async function mockCreateTask(projectId: string, task: Partial<Task>): Promise<Task> {
+  const project = projects.find(p => p.id === projectId);
+  if (!project) throw new Error('Project not found');
+
   const newTask: Task = {
     id: `task-${Date.now()}`,
-    orgId: 'org-1',
+    orgId: project.orgId,
     projectId,
     title: task.title || '',
     description: task.description || '',
-    status: (task.status as TaskStatus) || 'todo',
-    pillar: (task.pillar as Pillar) || 'Estratégia',
+    status: task.status || 'todo',
+    pillar: task.pillar || 'Estratégia',
     dueDate: task.dueDate,
-    ownerUserId: 'user-client-1',
-    ownerRole: 'client',
+    ownerUserId: task.ownerUserId,
+    ownerRole: task.ownerRole,
     createdAt: new Date(),
   };
-  mockTasks.push(newTask);
-  return Promise.resolve(newTask);
+  tasks.push(newTask);
+  return newTask;
 }
 
-export async function mockUpdateTask(taskId: string, task: Partial<Task>): Promise<void> {
-  const index = mockTasks.findIndex((t) => t.id === taskId);
+export async function mockUpdateTask(taskId: string, updates: Partial<Task>): Promise<void> {
+  const index = tasks.findIndex(t => t.id === taskId);
   if (index !== -1) {
-    mockTasks[index] = { ...mockTasks[index], ...task } as Task;
+    tasks[index] = { ...tasks[index], ...updates };
   }
-  return Promise.resolve();
 }
 
 export async function mockDeleteTask(taskId: string): Promise<void> {
-  const index = mockTasks.findIndex((t) => t.id === taskId);
-  if (index !== -1) {
-    mockTasks.splice(index, 1);
-  }
-  return Promise.resolve();
+  tasks = tasks.filter(t => t.id !== taskId);
 }
 
-export async function mockUpdateTaskStatus(taskId: string, status: string): Promise<void> {
-  const task = mockTasks.find((t) => t.id === taskId);
+export async function mockUpdateTaskStatus(taskId: string, status: Task['status']): Promise<void> {
+  const task = tasks.find(t => t.id === taskId);
   if (task) {
-    task.status = status as TaskStatus;
+    task.status = status;
   }
-  return Promise.resolve();
 }
 
 // ============================================================================
 // REUNIÕES
 // ============================================================================
 
-export async function mockListMeetings(projectId: ProjectId): Promise<Meeting[]> {
-  const meetings = mockMeetings.filter((m) => m.projectId === projectId);
-  return Promise.resolve(meetings);
+export async function mockListMeetings(projectId: string): Promise<Meeting[]> {
+  return meetings.filter(m => m.projectId === projectId);
 }
 
-export async function mockCreateMeeting(projectId: ProjectId, meeting: Partial<Meeting>): Promise<Meeting> {
+export async function mockCreateMeeting(projectId: string, meeting: Partial<Meeting>): Promise<Meeting> {
+  const project = projects.find(p => p.id === projectId);
+  if (!project) throw new Error('Project not found');
+
   const newMeeting: Meeting = {
     id: `meeting-${Date.now()}`,
-    orgId: 'org-1',
+    orgId: project.orgId,
     projectId,
     title: meeting.title || '',
     datetime: meeting.datetime || new Date(),
-    cadence: (meeting.cadence as MeetingCadence) || 'ad_hoc',
+    cadence: meeting.cadence || 'ad_hoc',
     notes: meeting.notes || '',
     createdAt: new Date(),
   };
-  mockMeetings.push(newMeeting);
-  return Promise.resolve(newMeeting);
+  meetings.push(newMeeting);
+  return newMeeting;
 }
 
-export async function mockUpdateMeeting(meetingId: string, meeting: Partial<Meeting>): Promise<void> {
-  const index = mockMeetings.findIndex((m) => m.id === meetingId);
+export async function mockUpdateMeeting(meetingId: string, updates: Partial<Meeting>): Promise<void> {
+  const index = meetings.findIndex(m => m.id === meetingId);
   if (index !== -1) {
-    mockMeetings[index] = { ...mockMeetings[index], ...meeting } as Meeting;
+    meetings[index] = { ...meetings[index], ...updates };
   }
-  return Promise.resolve();
 }
 
 export async function mockDeleteMeeting(meetingId: string): Promise<void> {
-  const index = mockMeetings.findIndex((m) => m.id === meetingId);
-  if (index !== -1) {
-    mockMeetings.splice(index, 1);
-  }
-  return Promise.resolve();
+  meetings = meetings.filter(m => m.id !== meetingId);
 }
 
 // ============================================================================
 // ENTREGÁVEIS
 // ============================================================================
 
-export async function mockListDeliverables(projectId: ProjectId): Promise<Deliverable[]> {
-  const deliverables = mockDeliverables.filter((d) => d.projectId === projectId);
-  return Promise.resolve(deliverables);
+export async function mockListDeliverables(projectId: string): Promise<Deliverable[]> {
+  return deliverables.filter(d => d.projectId === projectId);
 }
 
-export async function mockUpdateDeliverable(deliverableId: string, deliverable: Partial<Deliverable>): Promise<void> {
-  const index = mockDeliverables.findIndex((d) => d.id === deliverableId);
+export async function mockUpdateDeliverable(deliverableId: string, updates: Partial<Deliverable>): Promise<void> {
+  const index = deliverables.findIndex(d => d.id === deliverableId);
   if (index !== -1) {
-    mockDeliverables[index] = { ...mockDeliverables[index], ...deliverable } as Deliverable;
+    deliverables[index] = { ...deliverables[index], ...updates };
   }
-  return Promise.resolve();
 }
 
 export async function mockDeleteDeliverable(deliverableId: string): Promise<void> {
-  const index = mockDeliverables.findIndex((d) => d.id === deliverableId);
-  if (index !== -1) {
-    mockDeliverables.splice(index, 1);
-  }
-  return Promise.resolve();
+  deliverables = deliverables.filter(d => d.id !== deliverableId);
 }
 
 // ============================================================================
 // KPIs
 // ============================================================================
 
-export async function mockListKpis(projectId: ProjectId): Promise<Kpi[]> {
-  const kpis = mockKpis.filter((k) => k.projectId === projectId);
-  return Promise.resolve(kpis);
+export async function mockListKpis(projectId: string): Promise<Kpi[]> {
+  return kpis.filter(k => k.projectId === projectId);
 }
 
 // ============================================================================
-// MENSAGENS
+// MENSAGENS (Support Messages - by orgId)
 // ============================================================================
 
-export async function mockListMessages(projectId: ProjectId): Promise<Message[]> {
-  const messages = mockMessages.filter((m) => m.projectId === projectId);
-  return Promise.resolve(messages);
+export async function mockListMessages(threadId: string): Promise<Message[]> {
+  // In mock mode, threadId can be either projectId or orgId
+  // Filter by both to maintain compatibility
+  return messages.filter(m => m.projectId === threadId || m.orgId === threadId);
 }
 
-export async function mockSendMessage(projectId: ProjectId, text: string): Promise<Message> {
+export async function mockSendMessage(threadId: string, text: string): Promise<Message> {
+  // Try to find project first, otherwise use threadId as orgId
+  const project = projects.find(p => p.id === threadId);
+  const orgId = project?.orgId || threadId;
+
   const newMessage: Message = {
-    id: `message-${Date.now()}`,
-    orgId: 'org-1',
-    projectId,
-    createdBy: 'user-client-1',
-    createdByRole: 'client',
+    id: `msg-${Date.now()}`,
+    orgId,
+    projectId: threadId,
     text,
+    createdBy: 'user-owner-1',
+    createdByRole: 'admin',
     createdAt: new Date(),
   };
-  mockMessages.push(newMessage);
-  return Promise.resolve(newMessage);
+  messages.push(newMessage);
+  return newMessage;
 }
 
 // ============================================================================
 // DOCUMENTOS
 // ============================================================================
 
-export async function mockListDocuments(orgId: OrgId): Promise<Document[]> {
-  const documents = mockDocuments.filter((d) => d.orgId === orgId);
-  return Promise.resolve(documents);
+export async function mockListDocuments(orgIdOrProjectId: string): Promise<Document[]> {
+  return documents.filter(d => d.orgId === orgIdOrProjectId || d.projectId === orgIdOrProjectId);
 }
 
-export async function mockCreateDocument(projectId: ProjectId, document: Partial<Document>): Promise<Document> {
-  const newDocument: Document = {
-    id: `document-${Date.now()}`,
-    orgId: 'org-1',
-    projectId,
+export async function mockCreateDocument(orgIdOrProjectId: string, document: Partial<Document>): Promise<Document> {
+  const newDoc: Document = {
+    id: `doc-${Date.now()}`,
+    orgId: orgIdOrProjectId,
+    projectId: orgIdOrProjectId,
     title: document.title || '',
-    url: document.url || '',
-    category: document.category || 'Outros',
-    createdBy: 'user-client-1',
+    url: document.url || '#',
+    category: document.category || 'other',
+    createdBy: 'user-owner-1',
     createdAt: new Date(),
   };
-  mockDocuments.push(newDocument);
-  return Promise.resolve(newDocument);
+  documents.push(newDoc);
+  return newDoc;
 }
 
-export async function mockUploadDocument(
-  orgId: OrgId,
-  document: { name: string; category: DocumentCategory; file: any }
-): Promise<void> {
-  // Generate a unique ID for the document
-  const docId = `doc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  
-  // Get the direct URL from the ExternalBlob if available
-  let url = '';
-  try {
-    if (document.file && typeof document.file.getDirectURL === 'function') {
-      url = document.file.getDirectURL();
-    }
-  } catch (e) {
-    // If getDirectURL fails, use a placeholder
-    url = `#document-${docId}`;
-  }
-  
-  // Map category enum to display string
-  const categoryDisplay = CATEGORY_DISPLAY[document.category] || 'Outros';
-  
-  const newDocument: Document = {
-    id: docId,
+export async function mockUploadDocument(orgId: string, document: any): Promise<void> {
+  const newDoc: Document = {
+    id: `doc-${Date.now()}`,
     orgId,
-    projectId: orgId, // Use orgId as projectId for consistency
-    title: document.name,
-    url,
-    category: categoryDisplay,
-    createdBy: 'current-user',
+    projectId: orgId,
+    title: document.name || 'Untitled',
+    url: '#',
+    category: document.category || 'other',
+    createdBy: 'user-owner-1',
     createdAt: new Date(),
   };
-  
-  mockDocuments.push(newDocument);
-  return Promise.resolve();
-}
-
-export async function mockUpdateDocument(documentId: string, document: Partial<Document>): Promise<void> {
-  const index = mockDocuments.findIndex((d) => d.id === documentId);
-  if (index !== -1) {
-    mockDocuments[index] = { ...mockDocuments[index], ...document } as Document;
-  }
-  return Promise.resolve();
+  documents.push(newDoc);
 }
 
 export async function mockDeleteDocument(documentId: string): Promise<void> {
-  const index = mockDocuments.findIndex((d) => d.id === documentId);
-  if (index !== -1) {
-    mockDocuments.splice(index, 1);
-  }
-  return Promise.resolve();
+  documents = documents.filter(d => d.id !== documentId);
 }
 
 // ============================================================================
-// CONTATOS
+// CRM - CONTATOS
 // ============================================================================
 
-export async function mockListContacts(orgId: OrgId): Promise<Contact[]> {
-  const contacts = mockContacts.filter((c) => c.orgId === orgId);
-  return Promise.resolve(contacts);
+export async function mockListContacts(orgId: string): Promise<Contact[]> {
+  return contacts.filter(c => c.orgId === orgId);
 }
 
-export async function mockGetContact(contactId: string): Promise<Contact | null> {
-  const contact = mockContacts.find((c) => c.id === contactId);
-  return Promise.resolve(contact || null);
-}
-
-export async function mockCreateContact(orgId: OrgId, contact: Partial<Contact>): Promise<Contact> {
+export async function mockCreateContact(orgId: string, contact: Partial<Contact>): Promise<Contact> {
   const newContact: Contact = {
     id: `contact-${Date.now()}`,
     orgId,
@@ -383,48 +324,37 @@ export async function mockCreateContact(orgId: OrgId, contact: Partial<Contact>)
     phone: contact.phone || '',
     company: contact.company || '',
     tags: contact.tags || [],
-    status: contact.status || 'active',
-    ownerUserId: 'current-user',
+    status: contact.status || 'ativo',
+    ownerUserId: contact.ownerUserId || 'user-owner-1',
     notes: contact.notes || '',
     attachments: contact.attachments || [],
     createdAt: new Date(),
     updatedAt: new Date(),
   };
-  mockContacts.push(newContact);
-  return Promise.resolve(newContact);
+  contacts.push(newContact);
+  return newContact;
 }
 
-export async function mockUpdateContact(contactId: string, contact: Partial<Contact>): Promise<void> {
-  const index = mockContacts.findIndex((c) => c.id === contactId);
+export async function mockUpdateContact(contactId: string, updates: Partial<Contact>): Promise<void> {
+  const index = contacts.findIndex(c => c.id === contactId);
   if (index !== -1) {
-    mockContacts[index] = { ...mockContacts[index], ...contact, updatedAt: new Date() } as Contact;
+    contacts[index] = { ...contacts[index], ...updates, updatedAt: new Date() };
   }
-  return Promise.resolve();
 }
 
 export async function mockDeleteContact(contactId: string): Promise<void> {
-  const index = mockContacts.findIndex((c) => c.id === contactId);
-  if (index !== -1) {
-    mockContacts.splice(index, 1);
-  }
-  return Promise.resolve();
+  contacts = contacts.filter(c => c.id !== contactId);
 }
 
 // ============================================================================
-// DEALS
+// CRM - DEALS
 // ============================================================================
 
-export async function mockListDeals(orgId: OrgId): Promise<Deal[]> {
-  const deals = mockDeals.filter((d) => d.orgId === orgId);
-  return Promise.resolve(deals);
+export async function mockListDeals(orgId: string): Promise<Deal[]> {
+  return deals.filter(d => d.orgId === orgId);
 }
 
-export async function mockGetDeal(dealId: string): Promise<Deal | null> {
-  const deal = mockDeals.find((d) => d.id === dealId);
-  return Promise.resolve(deal || null);
-}
-
-export async function mockCreateDeal(orgId: OrgId, deal: Partial<Deal>): Promise<Deal> {
+export async function mockCreateDeal(orgId: string, deal: Partial<Deal>): Promise<Deal> {
   const newDeal: Deal = {
     id: `deal-${Date.now()}`,
     orgId,
@@ -433,84 +363,72 @@ export async function mockCreateDeal(orgId: OrgId, deal: Partial<Deal>): Promise
     stage: deal.stage || 'Lead',
     status: deal.status || 'open',
     value: deal.value || 0,
-    probability: deal.probability || 50,
-    ownerUserId: 'current-user',
+    probability: deal.probability || 0,
+    ownerUserId: deal.ownerUserId || 'user-owner-1',
     createdAt: new Date(),
     updatedAt: new Date(),
   };
-  mockDeals.push(newDeal);
-  return Promise.resolve(newDeal);
+  deals.push(newDeal);
+  return newDeal;
 }
 
-export async function mockUpdateDeal(dealId: string, deal: Partial<Deal>): Promise<void> {
-  const index = mockDeals.findIndex((d) => d.id === dealId);
+export async function mockUpdateDeal(dealId: string, updates: Partial<Deal>): Promise<void> {
+  const index = deals.findIndex(d => d.id === dealId);
   if (index !== -1) {
-    mockDeals[index] = { ...mockDeals[index], ...deal, updatedAt: new Date() } as Deal;
+    deals[index] = { ...deals[index], ...updates, updatedAt: new Date() };
   }
-  return Promise.resolve();
 }
 
 export async function mockDeleteDeal(dealId: string): Promise<void> {
-  const index = mockDeals.findIndex((d) => d.id === dealId);
-  if (index !== -1) {
-    mockDeals.splice(index, 1);
-  }
-  return Promise.resolve();
+  deals = deals.filter(d => d.id !== dealId);
 }
 
 // ============================================================================
-// ATIVIDADES
+// CRM - ATIVIDADES
 // ============================================================================
 
-export async function mockListActivities(orgId: OrgId): Promise<Activity[]> {
-  const activities = mockActivities.filter((a) => a.orgId === orgId);
-  return Promise.resolve(activities);
+export async function mockListActivities(orgId: string): Promise<Activity[]> {
+  return activities.filter(a => a.orgId === orgId);
 }
 
-export async function mockCreateActivity(orgId: OrgId, activity: Partial<Activity>): Promise<Activity> {
+export async function mockCreateActivity(orgId: string, activity: Partial<Activity>): Promise<Activity> {
   const newActivity: Activity = {
     id: `activity-${Date.now()}`,
     orgId,
     type: activity.type || 'task',
     dueDate: activity.dueDate || new Date(),
     status: activity.status || 'open',
-    ownerUserId: 'current-user',
+    ownerUserId: activity.ownerUserId || 'user-owner-1',
     relatedType: activity.relatedType || 'contact',
     relatedId: activity.relatedId || '',
     notes: activity.notes || '',
     createdAt: new Date(),
     updatedAt: new Date(),
   };
-  mockActivities.push(newActivity);
-  return Promise.resolve(newActivity);
+  activities.push(newActivity);
+  return newActivity;
 }
 
-export async function mockUpdateActivity(activityId: string, activity: Partial<Activity>): Promise<void> {
-  const index = mockActivities.findIndex((a) => a.id === activityId);
+export async function mockUpdateActivity(activityId: string, updates: Partial<Activity>): Promise<void> {
+  const index = activities.findIndex(a => a.id === activityId);
   if (index !== -1) {
-    mockActivities[index] = { ...mockActivities[index], ...activity, updatedAt: new Date() } as Activity;
+    activities[index] = { ...activities[index], ...updates, updatedAt: new Date() };
   }
-  return Promise.resolve();
 }
 
 export async function mockDeleteActivity(activityId: string): Promise<void> {
-  const index = mockActivities.findIndex((a) => a.id === activityId);
-  if (index !== -1) {
-    mockActivities.splice(index, 1);
-  }
-  return Promise.resolve();
+  activities = activities.filter(a => a.id !== activityId);
 }
 
 // ============================================================================
-// CONTRATOS
+// CRM - CONTRATOS
 // ============================================================================
 
-export async function mockListContracts(orgId: OrgId): Promise<Contract[]> {
-  const contracts = mockContracts.filter((c) => c.orgId === orgId);
-  return Promise.resolve(contracts);
+export async function mockListContracts(orgId: string): Promise<Contract[]> {
+  return contracts.filter(c => c.orgId === orgId);
 }
 
-export async function mockCreateContract(orgId: OrgId, contract: Partial<Contract>): Promise<Contract> {
+export async function mockCreateContract(orgId: string, contract: Partial<Contract>): Promise<Contract> {
   const newContract: Contract = {
     id: `contract-${Date.now()}`,
     orgId,
@@ -523,133 +441,145 @@ export async function mockCreateContract(orgId: OrgId, contract: Partial<Contrac
     createdAt: new Date(),
     updatedAt: new Date(),
   };
-  mockContracts.push(newContract);
-  return Promise.resolve(newContract);
+  contracts.push(newContract);
+  return newContract;
 }
 
-export async function mockUpdateContract(contractId: string, contract: Partial<Contract>): Promise<void> {
-  const index = mockContracts.findIndex((c) => c.id === contractId);
+export async function mockUpdateContract(contractId: string, updates: Partial<Contract>): Promise<void> {
+  const index = contracts.findIndex(c => c.id === contractId);
   if (index !== -1) {
-    mockContracts[index] = { ...mockContracts[index], ...contract, updatedAt: new Date() } as Contract;
+    contracts[index] = { ...contracts[index], ...updates, updatedAt: new Date() };
   }
-  return Promise.resolve();
 }
 
 export async function mockDeleteContract(contractId: string): Promise<void> {
-  const index = mockContracts.findIndex((c) => c.id === contractId);
+  contracts = contracts.filter(c => c.id !== contractId);
+}
+
+export async function mockCancelContract(contractId: string, cancelReason: string): Promise<void> {
+  const index = contracts.findIndex(c => c.id === contractId);
   if (index !== -1) {
-    mockContracts.splice(index, 1);
+    contracts[index] = {
+      ...contracts[index],
+      status: 'canceled',
+      cancelDate: new Date(),
+      cancelReason,
+      updatedAt: new Date(),
+    };
   }
-  return Promise.resolve();
 }
 
 // ============================================================================
-// FINANÇAS
+// FINANCEIRO
 // ============================================================================
 
-export async function mockListFinanceTransactions(orgId: OrgId): Promise<FinanceTransaction[]> {
-  const transactions = mockFinanceTransactions.filter((t) => t.orgId === orgId);
-  return Promise.resolve(transactions);
+export async function mockListFinanceTransactions(orgId: string): Promise<FinanceTransaction[]> {
+  return financeTransactions.filter(t => t.orgId === orgId);
 }
 
-export async function mockCreateFinanceTransaction(
-  orgId: OrgId,
-  transaction: Partial<FinanceTransaction>
-): Promise<FinanceTransaction> {
+export async function mockCreateFinanceTransaction(orgId: string, transaction: Partial<FinanceTransaction>): Promise<FinanceTransaction> {
   const newTransaction: FinanceTransaction = {
     id: `transaction-${Date.now()}`,
     orgId,
     type: transaction.type || 'income',
-    value: transaction.value || 0,
-    description: transaction.description || '',
-    category: transaction.category || 'other',
     date: transaction.date || new Date(),
+    value: transaction.value || 0,
+    category: transaction.category || '',
+    description: transaction.description || '',
     isRecurring: transaction.isRecurring || false,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
-  mockFinanceTransactions.push(newTransaction);
-  return Promise.resolve(newTransaction);
+  financeTransactions.push(newTransaction);
+  return newTransaction;
 }
 
-export async function mockUpdateFinanceTransaction(
-  transactionId: string,
-  transaction: Partial<FinanceTransaction>
-): Promise<void> {
-  const index = mockFinanceTransactions.findIndex((t) => t.id === transactionId);
+export async function mockUpdateFinanceTransaction(transactionId: string, updates: Partial<FinanceTransaction>): Promise<void> {
+  const index = financeTransactions.findIndex(t => t.id === transactionId);
   if (index !== -1) {
-    mockFinanceTransactions[index] = {
-      ...mockFinanceTransactions[index],
-      ...transaction,
-      updatedAt: new Date(),
-    } as FinanceTransaction;
+    financeTransactions[index] = { ...financeTransactions[index], ...updates, updatedAt: new Date() };
   }
-  return Promise.resolve();
 }
 
 export async function mockDeleteFinanceTransaction(transactionId: string): Promise<void> {
-  const index = mockFinanceTransactions.findIndex((t) => t.id === transactionId);
-  if (index !== -1) {
-    mockFinanceTransactions.splice(index, 1);
-  }
-  return Promise.resolve();
+  financeTransactions = financeTransactions.filter(t => t.id !== transactionId);
 }
 
 // ============================================================================
 // NPS CAMPAIGNS
 // ============================================================================
 
-export async function mockListNpsCampaigns(orgId: OrgId): Promise<NpsCampaign[]> {
-  // Mock implementation - return empty array for now
-  return Promise.resolve([]);
+export async function mockListNpsCampaigns(orgId: string): Promise<NpsCampaign[]> {
+  return npsCampaigns.filter(c => c.orgId === orgId);
 }
 
-export async function mockCreateNpsCampaign(orgId: OrgId, campaign: Partial<NpsCampaign>): Promise<NpsCampaign> {
+export async function mockCreateNpsCampaign(orgId: string, campaign: Partial<NpsCampaign>): Promise<NpsCampaign> {
   const newCampaign: NpsCampaign = {
-    id: `nps-${Date.now()}`,
+    id: `campaign-${Date.now()}`,
     orgId,
-    periodKey: campaign.periodKey || new Date().toISOString().slice(0, 7),
+    periodKey: campaign.periodKey || '',
     status: campaign.status || 'active',
     createdAt: new Date(),
     updatedAt: new Date(),
   };
-  return Promise.resolve(newCampaign);
+  npsCampaigns.push(newCampaign);
+  return newCampaign;
+}
+
+// ============================================================================
+// NPS RESPONSES
+// ============================================================================
+
+export async function mockListNpsResponses(orgId: string, startDate: Date, endDate: Date): Promise<NpsResponse[]> {
+  return npsResponses.filter(r => 
+    r.orgId === orgId && 
+    r.createdAt >= startDate && 
+    r.createdAt <= endDate
+  );
+}
+
+export async function mockCreateNpsResponse(orgId: string, response: Partial<NpsResponse>): Promise<NpsResponse> {
+  const newResponse: NpsResponse = {
+    id: `response-${Date.now()}`,
+    orgId,
+    campaignId: response.campaignId || '',
+    contactId: response.contactId || '',
+    score: response.score || 0,
+    comment: response.comment || '',
+    createdAt: new Date(),
+  };
+  npsResponses.push(newResponse);
+  return newResponse;
 }
 
 // ============================================================================
 // REPORTS
 // ============================================================================
 
-export async function mockListReports(orgId: OrgId): Promise<any[]> {
-  // Mock implementation - return empty array for now
-  return Promise.resolve([]);
+export async function mockListReports(orgId: string): Promise<any[]> {
+  return [];
 }
 
-export async function mockGenerateReport(orgId: OrgId, report: any): Promise<void> {
-  // Mock implementation - no-op
-  return Promise.resolve();
+export async function mockGenerateReport(orgId: string, report: any): Promise<void> {
+  // No-op in mock
 }
 
 // ============================================================================
-// TEAM MANAGEMENT
+// TEAM
 // ============================================================================
 
 export async function mockIsCallerAdmin(): Promise<boolean> {
-  // Mock implementation - return true for testing
-  return Promise.resolve(true);
+  return true;
 }
 
-export async function mockInviteTeamMember(orgId: OrgId, invitation: any): Promise<void> {
-  // Mock implementation - no-op
-  return Promise.resolve();
+export async function mockInviteTeamMember(orgId: string, invitation: any): Promise<void> {
+  // No-op in mock
 }
 
-export async function mockListOrgMembers(orgId: OrgId): Promise<any[]> {
-  // Mock implementation - return empty array for now
-  return Promise.resolve([]);
+export async function mockListOrgMembers(orgId: string): Promise<any[]> {
+  return [];
 }
 
-export async function mockListTeamInvitations(orgId: OrgId): Promise<any[]> {
-  // Mock implementation - return empty array for now
-  return Promise.resolve([]);
+export async function mockListTeamInvitations(orgId: string): Promise<any[]> {
+  return [];
 }

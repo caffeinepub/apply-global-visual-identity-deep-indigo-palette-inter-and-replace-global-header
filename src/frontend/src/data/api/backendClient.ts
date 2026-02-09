@@ -1,7 +1,7 @@
-import type { backendInterface, DealStage as BackendDealStage, ProjectPhase as BackendProjectPhase, DocumentCategory as BackendDocumentCategory } from '../../backend';
-import { ExternalBlob, DocumentCategory } from '../../backend';
+import type { backendInterface, AppUserRole } from '../../backend';
 import type {
   Organization,
+  UserProfile,
   Project,
   Task,
   Meeting,
@@ -14,72 +14,85 @@ import type {
   Activity,
   Contract,
   FinanceTransaction,
-  OrgId,
-  ProjectId,
-  UserProfile,
   NpsCampaign,
+  NpsResponse,
+  AppRole,
 } from '../../types/model';
+import { ExternalBlob } from '../../backend';
+import { Principal } from '@dfinity/principal';
 
 /**
- * Cliente que conecta ao backend Motoko via actor.
- * Mapeia os tipos do backend para os tipos do frontend.
+ * Map frontend AppRole to backend AppUserRole
  */
+function mapFrontendRoleToBackend(frontendRole: AppRole): AppUserRole {
+  // The roles are the same, just need to cast
+  return frontendRole as AppUserRole;
+}
 
-// Map backend DocumentCategory enum to display strings (pt-BR)
-const CATEGORY_DISPLAY: Record<BackendDocumentCategory, string> = {
-  [DocumentCategory.contracts]: 'Contratos',
-  [DocumentCategory.invoices]: 'Faturas',
-  [DocumentCategory.presentations]: 'Apresentações',
-  [DocumentCategory.reports]: 'Relatórios',
-  [DocumentCategory.marketing]: 'Marketing',
-  [DocumentCategory.mediaAssets]: 'Mídias',
-  [DocumentCategory.projectDocs]: 'Documentos do Projeto',
-  [DocumentCategory.proposals]: 'Propostas',
-  [DocumentCategory.legal]: 'Jurídico',
-  [DocumentCategory.other]: 'Outros',
-};
+/**
+ * Map backend AppUserRole to frontend AppRole
+ */
+function mapBackendRoleToFrontend(backendRole: AppUserRole): AppRole {
+  // The roles are the same, just need to cast
+  return backendRole as AppRole;
+}
 
+/**
+ * Backend client that maps frontend types to backend actor calls
+ */
 export class BackendClient {
   constructor(private actor: backendInterface) {}
+
+  // Helper: Convert Date to bigint nanoseconds
+  private dateToNano(date: Date): bigint {
+    return BigInt(date.getTime()) * BigInt(1_000_000);
+  }
+
+  // Helper: Convert bigint nanoseconds to Date
+  private nanoToDate(nano: bigint): Date {
+    return new Date(Number(nano) / 1_000_000);
+  }
+
+  // Helper: Get current principal
+  private async getCurrentPrincipal(): Promise<Principal> {
+    // This is a placeholder - in reality, the principal comes from the identity
+    return Principal.anonymous();
+  }
 
   // ============================================================================
   // ORGANIZAÇÕES
   // ============================================================================
 
   async listOrgs(): Promise<Organization[]> {
-    // Backend doesn't have listOrgs yet, return empty for now
+    // Backend doesn't expose a global listOrgs for security
+    // For Firsty roles, we would need a special backend method
+    // For now, return empty and rely on org selection flow
     return [];
   }
 
-  async getOrg(orgId: OrgId): Promise<Organization | null> {
-    try {
-      const org = await this.actor.getOrganization(orgId);
-      if (!org) return null;
-      return {
-        id: org.id,
-        name: org.name,
-        owner: org.createdBy.toString(),
-        createdAt: new Date(Number(org.createdAt) / 1000000),
-      };
-    } catch {
-      return null;
-    }
-  }
-
-  async createOrg(name: string): Promise<Organization> {
-    const timestamp = BigInt(Date.now() * 1000000);
-    const orgId = await this.actor.createOrganization(name, timestamp);
+  async getOrg(orgId: string): Promise<Organization | null> {
     const org = await this.actor.getOrganization(orgId);
-    if (!org) throw new Error('Failed to create organization');
+    if (!org) return null;
     return {
       id: org.id,
       name: org.name,
       owner: org.createdBy.toString(),
-      createdAt: new Date(Number(org.createdAt) / 1000000),
+      createdAt: this.nanoToDate(org.createdAt),
     };
   }
 
-  async selectOrg(orgId: OrgId): Promise<void> {
+  async createOrg(name: string): Promise<Organization> {
+    const timestamp = this.dateToNano(new Date());
+    const orgId = await this.actor.createOrganization(name, timestamp);
+    return {
+      id: orgId,
+      name,
+      owner: 'current-user',
+      createdAt: new Date(),
+    };
+  }
+
+  async selectOrg(orgId: string): Promise<void> {
     // Update user profile with selected org
     const profile = await this.actor.getCallerUserProfile();
     if (profile) {
@@ -91,223 +104,240 @@ export class BackendClient {
   }
 
   // ============================================================================
-  // PERFIL DE USUÁRIO
+  // PERFIL
   // ============================================================================
 
   async getUserProfile(): Promise<UserProfile | null> {
-    const profile = await this.actor.getCallerUserProfile();
-    return profile;
+    const backendProfile = await this.actor.getCallerUserProfile();
+    if (!backendProfile) return null;
+    
+    // Map backend profile to frontend profile
+    return {
+      firstName: backendProfile.firstName,
+      lastName: backendProfile.lastName,
+      email: backendProfile.email,
+      currentOrgId: backendProfile.currentOrgId,
+      appRole: mapBackendRoleToFrontend(backendProfile.appRole),
+    };
   }
 
   async saveUserProfile(profile: UserProfile): Promise<void> {
-    await this.actor.saveCallerUserProfile(profile);
+    // Map frontend profile to backend profile
+    await this.actor.saveCallerUserProfile({
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      email: profile.email,
+      currentOrgId: profile.currentOrgId,
+      appRole: mapFrontendRoleToBackend(profile.appRole),
+    });
   }
 
   // ============================================================================
   // PROJETOS
   // ============================================================================
 
-  async listProjects(orgId: OrgId): Promise<Project[]> {
+  async listProjects(orgId: string): Promise<Project[]> {
     const projects = await this.actor.listProjects(orgId);
-    return projects.map((p) => ({
+    return projects.map(p => ({
       id: p.id,
       orgId: p.orgId,
       name: p.name,
-      clientName: p.name,
+      clientName: p.description,
       businessProfile: 'solo' as const,
       journeyMonths: 3,
-      stage: this.mapProjectPhase(p.phase),
+      stage: 'execution_30' as const,
       startDate: new Date(),
       createdBy: p.createdBy.toString(),
       createdAt: new Date(),
     }));
   }
 
-  async getProject(projectId: ProjectId): Promise<Project | null> {
+  async getProject(projectId: string): Promise<Project | null> {
     const project = await this.actor.getProject(projectId);
     if (!project) return null;
     return {
       id: project.id,
       orgId: project.orgId,
       name: project.name,
-      clientName: project.name,
+      clientName: project.description,
       businessProfile: 'solo' as const,
       journeyMonths: 3,
-      stage: this.mapProjectPhase(project.phase),
+      stage: 'execution_30' as const,
       startDate: new Date(),
       createdBy: project.createdBy.toString(),
       createdAt: new Date(),
     };
   }
 
-  async createProject(orgId: OrgId, project: Partial<Project>): Promise<Project> {
-    const backendProject = {
-      id: `project-${Date.now()}`,
-      orgId,
-      name: project.name || '',
-      description: project.clientName || '',
-      phase: 'planning' as any,
-      createdBy: (await this.actor.getCallerUserProfile())?.currentOrgId || '',
-      createdAt: BigInt(0),
-    };
+  async createProject(orgId: string, project: Partial<Project>): Promise<Project> {
+    throw new Error('Not implemented in backend');
+  }
+
+  // ============================================================================
+  // TAREFAS, REUNIÕES, ENTREGÁVEIS, KPIs
+  // ============================================================================
+
+  async listTasks(projectId: string): Promise<Task[]> {
+    return [];
+  }
+
+  async createTask(projectId: string, task: Partial<Task>): Promise<Task> {
+    throw new Error('Not implemented in backend');
+  }
+
+  async updateTask(taskId: string, task: Partial<Task>): Promise<void> {
+    throw new Error('Not implemented in backend');
+  }
+
+  async deleteTask(taskId: string): Promise<void> {
+    throw new Error('Not implemented in backend');
+  }
+
+  async updateTaskStatus(taskId: string, status: Task['status']): Promise<void> {
+    throw new Error('Not implemented in backend');
+  }
+
+  async listMeetings(projectId: string): Promise<Meeting[]> {
+    return [];
+  }
+
+  async createMeeting(projectId: string, meeting: Partial<Meeting>): Promise<Meeting> {
+    throw new Error('Not implemented in backend');
+  }
+
+  async updateMeeting(meetingId: string, meeting: Partial<Meeting>): Promise<void> {
+    throw new Error('Not implemented in backend');
+  }
+
+  async deleteMeeting(meetingId: string): Promise<void> {
+    throw new Error('Not implemented in backend');
+  }
+
+  async listDeliverables(projectId: string): Promise<Deliverable[]> {
+    return [];
+  }
+
+  async updateDeliverable(deliverableId: string, deliverable: Partial<Deliverable>): Promise<void> {
+    throw new Error('Not implemented in backend');
+  }
+
+  async deleteDeliverable(deliverableId: string): Promise<void> {
+    throw new Error('Not implemented in backend');
+  }
+
+  async listKpis(projectId: string): Promise<Kpi[]> {
+    return [];
+  }
+
+  // ============================================================================
+  // MENSAGENS (Support Messages)
+  // ============================================================================
+
+  async listMessages(threadId: string): Promise<Message[]> {
+    // In BACKEND mode, threadId is the orgId for support messages
+    const supportMessages = await this.actor.getSupportMessages(threadId);
+    return supportMessages.map(msg => ({
+      id: msg.id,
+      orgId: msg.orgId,
+      projectId: msg.orgId, // Use orgId as projectId for compatibility
+      text: msg.message,
+      createdBy: msg.sentBy.toString(),
+      createdByRole: 'member' as const, // Default role
+      createdAt: this.nanoToDate(msg.sentAt),
+    }));
+  }
+
+  async sendMessage(threadId: string, text: string): Promise<Message> {
+    // In BACKEND mode, threadId is the orgId for support messages
+    const timestamp = this.dateToNano(new Date());
+    await this.actor.sendSupportMessage(text, threadId, timestamp);
     
-    await this.actor.createProject(backendProject as any);
+    // Return the created message
     return {
-      id: backendProject.id,
-      orgId,
-      name: backendProject.name,
-      clientName: backendProject.description,
-      businessProfile: 'solo',
-      journeyMonths: 3,
-      stage: 'onboarding',
-      startDate: new Date(),
-      createdBy: backendProject.createdBy,
+      id: `msg-${Date.now()}`,
+      orgId: threadId,
+      projectId: threadId,
+      text,
+      createdBy: 'current-user',
+      createdByRole: 'member',
       createdAt: new Date(),
     };
-  }
-
-  private mapProjectPhase(phase: BackendProjectPhase): Project['stage'] {
-    const phaseStr = Object.keys(phase)[0];
-    if (phaseStr === 'planning') return 'onboarding';
-    if (phaseStr === 'inProgress') return 'execution_continuous';
-    if (phaseStr === 'completed') return 'closing';
-    return 'onboarding';
-  }
-
-  // ============================================================================
-  // TAREFAS (Stage 1: não implementado no backend ainda)
-  // ============================================================================
-
-  async listTasks(_projectId: ProjectId): Promise<Task[]> {
-    return [];
-  }
-
-  async createTask(_projectId: ProjectId, _task: Partial<Task>): Promise<Task> {
-    throw new Error('Not implemented in backend mode');
-  }
-
-  async updateTask(_taskId: string, _task: Partial<Task>): Promise<void> {
-    throw new Error('Not implemented in backend mode');
-  }
-
-  async deleteTask(_taskId: string): Promise<void> {
-    throw new Error('Not implemented in backend mode');
-  }
-
-  async updateTaskStatus(_taskId: string, _status: string): Promise<void> {
-    throw new Error('Not implemented in backend mode');
-  }
-
-  // ============================================================================
-  // REUNIÕES (Stage 1: não implementado no backend ainda)
-  // ============================================================================
-
-  async listMeetings(_projectId: ProjectId): Promise<Meeting[]> {
-    return [];
-  }
-
-  async createMeeting(_projectId: ProjectId, _meeting: Partial<Meeting>): Promise<Meeting> {
-    throw new Error('Not implemented in backend mode');
-  }
-
-  async updateMeeting(_meetingId: string, _meeting: Partial<Meeting>): Promise<void> {
-    throw new Error('Not implemented in backend mode');
-  }
-
-  async deleteMeeting(_meetingId: string): Promise<void> {
-    throw new Error('Not implemented in backend mode');
-  }
-
-  // ============================================================================
-  // ENTREGÁVEIS (Stage 1: não implementado no backend ainda)
-  // ============================================================================
-
-  async listDeliverables(_projectId: ProjectId): Promise<Deliverable[]> {
-    return [];
-  }
-
-  async updateDeliverable(_deliverableId: string, _deliverable: Partial<Deliverable>): Promise<void> {
-    throw new Error('Not implemented in backend mode');
-  }
-
-  async deleteDeliverable(_deliverableId: string): Promise<void> {
-    throw new Error('Not implemented in backend mode');
-  }
-
-  // ============================================================================
-  // KPIs (Stage 1: não implementado no backend ainda)
-  // ============================================================================
-
-  async listKpis(_projectId: ProjectId): Promise<Kpi[]> {
-    return [];
-  }
-
-  // ============================================================================
-  // MENSAGENS (Stage 1: não implementado no backend ainda)
-  // ============================================================================
-
-  async listMessages(_projectId: ProjectId): Promise<Message[]> {
-    return [];
-  }
-
-  async sendMessage(_projectId: ProjectId, _text: string): Promise<Message> {
-    throw new Error('Not implemented in backend mode');
   }
 
   // ============================================================================
   // DOCUMENTOS
   // ============================================================================
 
-  async listDocuments(orgId: OrgId): Promise<Document[]> {
+  async listDocuments(orgId: string): Promise<Document[]> {
     const docs = await this.actor.listDocuments(orgId);
-    return docs.map((d) => {
-      // Map backend category enum to display string (pt-BR)
-      const categoryDisplay = CATEGORY_DISPLAY[d.category] || 'Outros';
-      
-      return {
-        id: d.id,
-        orgId: d.orgId,
-        projectId: d.orgId,
-        title: d.name,
-        url: d.file.getDirectURL(),
-        category: categoryDisplay,
-        createdBy: d.uploadedBy.toString(),
-        createdAt: new Date(Number(d.uploadedAt) / 1000000),
-      };
-    });
+    return docs.map(d => ({
+      id: d.id,
+      orgId: d.orgId,
+      projectId: d.orgId,
+      title: d.name,
+      url: d.file.getDirectURL(),
+      category: this.mapDocumentCategory(d.category),
+      createdBy: d.uploadedBy.toString(),
+      createdAt: this.nanoToDate(d.uploadedAt),
+    }));
   }
 
-  async createDocument(_projectId: ProjectId, _document: Partial<Document>): Promise<Document> {
-    throw new Error('Use uploadDocument for backend mode');
+  async createDocument(orgId: string, document: any): Promise<Document> {
+    throw new Error('Not implemented in backend');
   }
 
-  async uploadDocument(
-    orgId: OrgId,
-    document: { name: string; category: BackendDocumentCategory; file: ExternalBlob }
-  ): Promise<void> {
+  async uploadDocument(orgId: string, document: any): Promise<void> {
     await this.actor.uploadDocument({
       orgId,
       name: document.name,
-      category: document.category,
       file: document.file,
+      category: this.mapDocumentCategoryToBackend(document.category),
     });
   }
 
-  async updateDocument(_documentId: string, _document: Partial<Document>): Promise<void> {
-    throw new Error('Not implemented in backend mode');
+  async deleteDocument(documentId: string): Promise<void> {
+    throw new Error('Not implemented in backend');
   }
 
-  async deleteDocument(_documentId: string): Promise<void> {
-    throw new Error('Not implemented in backend mode');
+  private mapDocumentCategory(category: any): string {
+    const categoryMap: Record<string, string> = {
+      contracts: 'Contratos',
+      invoices: 'Faturas',
+      presentations: 'Apresentações',
+      reports: 'Relatórios',
+      marketing: 'Marketing',
+      mediaAssets: 'Mídia',
+      projectDocs: 'Projetos',
+      proposals: 'Propostas',
+      legal: 'Jurídico',
+      other: 'Outros',
+    };
+    return categoryMap[category] || 'Outros';
+  }
+
+  private mapDocumentCategoryToBackend(category: string): any {
+    const categoryMap: Record<string, string> = {
+      'Contratos': 'contracts',
+      'Faturas': 'invoices',
+      'Apresentações': 'presentations',
+      'Relatórios': 'reports',
+      'Marketing': 'marketing',
+      'Mídia': 'mediaAssets',
+      'Projetos': 'projectDocs',
+      'Propostas': 'proposals',
+      'Jurídico': 'legal',
+      'Outros': 'other',
+    };
+    return { [categoryMap[category] || 'other']: null };
   }
 
   // ============================================================================
-  // CONTATOS
+  // CRM - CONTATOS
   // ============================================================================
 
-  async listContacts(orgId: OrgId): Promise<Contact[]> {
+  async listContacts(orgId: string): Promise<Contact[]> {
     const contacts = await this.actor.listContacts(orgId);
-    return contacts.map((c) => ({
+    return contacts.map(c => ({
       id: c.id,
       orgId: c.orgId,
       name: c.name,
@@ -315,7 +345,7 @@ export class BackendClient {
       phone: c.phone,
       company: '',
       tags: [],
-      status: 'active',
+      status: 'ativo',
       ownerUserId: c.createdBy.toString(),
       notes: '',
       attachments: [],
@@ -324,74 +354,49 @@ export class BackendClient {
     }));
   }
 
-  async getContact(contactId: string): Promise<Contact | null> {
-    const contact = await this.actor.getContact(contactId);
-    if (!contact) return null;
-    return {
-      id: contact.id,
-      orgId: contact.orgId,
-      name: contact.name,
-      email: contact.email,
-      phone: contact.phone,
-      company: '',
-      tags: [],
-      status: 'active',
-      ownerUserId: contact.createdBy.toString(),
-      notes: '',
-      attachments: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  }
-
-  async createContact(orgId: OrgId, contact: Partial<Contact>): Promise<Contact> {
-    const backendContact = {
+  async createContact(orgId: string, contact: Partial<Contact>): Promise<Contact> {
+    const newContact = {
       id: `contact-${Date.now()}`,
       orgId,
       name: contact.name || '',
       email: contact.email || '',
       phone: contact.phone || '',
-      createdBy: (await this.actor.getCallerUserProfile())?.currentOrgId || '',
+      createdBy: await this.getCurrentPrincipal(),
     };
-    
-    await this.actor.createContact(backendContact as any);
+    await this.actor.createContact(newContact);
     return {
-      id: backendContact.id,
-      orgId,
-      name: backendContact.name,
-      email: backendContact.email,
-      phone: backendContact.phone,
-      company: '',
-      tags: [],
-      status: 'active',
-      ownerUserId: backendContact.createdBy,
-      notes: '',
-      attachments: [],
+      ...newContact,
+      company: contact.company || '',
+      tags: contact.tags || [],
+      status: contact.status || 'ativo',
+      ownerUserId: newContact.createdBy.toString(),
+      notes: contact.notes || '',
+      attachments: contact.attachments || [],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
   }
 
-  async updateContact(_contactId: string, _contact: Partial<Contact>): Promise<void> {
-    throw new Error('Not implemented in backend mode');
+  async updateContact(contactId: string, contact: Partial<Contact>): Promise<void> {
+    throw new Error('Not implemented in backend');
   }
 
-  async deleteContact(_contactId: string): Promise<void> {
-    throw new Error('Not implemented in backend mode');
+  async deleteContact(contactId: string): Promise<void> {
+    throw new Error('Not implemented in backend');
   }
 
   // ============================================================================
-  // DEALS
+  // CRM - DEALS
   // ============================================================================
 
-  async listDeals(orgId: OrgId): Promise<Deal[]> {
+  async listDeals(orgId: string): Promise<Deal[]> {
     const deals = await this.actor.listDeals(orgId);
-    return deals.map((d) => ({
+    return deals.map(d => ({
       id: d.id,
       orgId: d.orgId,
       title: d.name,
       contactId: '',
-      stage: this.mapDealStage(d.stage),
+      stage: 'Lead' as const,
       status: 'open' as const,
       value: Number(d.value),
       probability: 50,
@@ -401,88 +406,30 @@ export class BackendClient {
     }));
   }
 
-  async getDeal(dealId: string): Promise<Deal | null> {
-    const deal = await this.actor.getDeal(dealId);
-    if (!deal) return null;
-    return {
-      id: deal.id,
-      orgId: deal.orgId,
-      title: deal.name,
-      contactId: '',
-      stage: this.mapDealStage(deal.stage),
-      status: 'open',
-      value: Number(deal.value),
-      probability: 50,
-      ownerUserId: deal.createdBy.toString(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+  async createDeal(orgId: string, deal: Partial<Deal>): Promise<Deal> {
+    throw new Error('Not implemented in backend');
   }
 
-  async createDeal(orgId: OrgId, deal: Partial<Deal>): Promise<Deal> {
-    const backendDeal = {
-      id: `deal-${Date.now()}`,
-      orgId,
-      name: deal.title || '',
-      value: BigInt(deal.value || 0),
-      stage: this.mapDealStageToBackend(deal.stage || 'Lead'),
-      createdBy: (await this.actor.getCallerUserProfile())?.currentOrgId || '',
-    };
-    
-    await this.actor.createDeal(backendDeal as any);
-    return {
-      id: backendDeal.id,
-      orgId,
-      title: backendDeal.name,
-      contactId: '',
-      stage: deal.stage || 'Lead',
-      status: 'open',
-      value: Number(backendDeal.value),
-      probability: 50,
-      ownerUserId: backendDeal.createdBy,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+  async updateDeal(dealId: string, deal: Partial<Deal>): Promise<void> {
+    throw new Error('Not implemented in backend');
   }
 
-  async updateDeal(_dealId: string, _deal: Partial<Deal>): Promise<void> {
-    throw new Error('Not implemented in backend mode');
-  }
-
-  async deleteDeal(_dealId: string): Promise<void> {
-    throw new Error('Not implemented in backend mode');
-  }
-
-  private mapDealStage(stage: BackendDealStage): Deal['stage'] {
-    const stageStr = Object.keys(stage)[0];
-    if (stageStr === 'prospecting') return 'Lead';
-    if (stageStr === 'negotiation') return 'Negociação';
-    if (stageStr === 'closedWon') return 'Fechado';
-    if (stageStr === 'closedLost') return 'Fechado';
-    return 'Lead';
-  }
-
-  private mapDealStageToBackend(stage: Deal['stage']): BackendDealStage {
-    if (stage === 'Lead') return { prospecting: null } as any;
-    if (stage === 'Qualificação') return { prospecting: null } as any;
-    if (stage === 'Proposta') return { negotiation: null } as any;
-    if (stage === 'Negociação') return { negotiation: null } as any;
-    if (stage === 'Fechado') return { closedWon: null } as any;
-    return { prospecting: null } as any;
+  async deleteDeal(dealId: string): Promise<void> {
+    throw new Error('Not implemented in backend');
   }
 
   // ============================================================================
-  // ATIVIDADES
+  // CRM - ATIVIDADES
   // ============================================================================
 
-  async listActivities(orgId: OrgId): Promise<Activity[]> {
+  async listActivities(orgId: string): Promise<Activity[]> {
     const activities = await this.actor.listActivities(orgId);
-    return activities.map((a) => ({
+    return activities.map(a => ({
       id: a.id,
       orgId: a.orgId,
       type: 'task' as const,
-      dueDate: a.dueDate ? new Date(Number(a.dueDate) / 1000000) : new Date(),
-      status: a.completed ? 'done' : 'open',
+      dueDate: a.dueDate ? this.nanoToDate(a.dueDate) : new Date(),
+      status: a.completed ? 'done' as const : 'open' as const,
       ownerUserId: a.createdBy.toString(),
       relatedType: 'project' as const,
       relatedId: a.relatedProject || '',
@@ -492,260 +439,179 @@ export class BackendClient {
     }));
   }
 
-  async createActivity(orgId: OrgId, activity: Partial<Activity>): Promise<Activity> {
-    const backendActivity = {
-      id: `activity-${Date.now()}`,
-      orgId,
-      name: activity.notes || '',
-      dueDate: activity.dueDate ? BigInt(activity.dueDate.getTime() * 1000000) : undefined,
-      completed: false,
-      relatedProject: activity.relatedId,
-      createdBy: (await this.actor.getCallerUserProfile())?.currentOrgId || '',
-    };
-    
-    await this.actor.createActivity(backendActivity as any);
-    return {
-      id: backendActivity.id,
-      orgId,
-      type: 'task',
-      dueDate: activity.dueDate || new Date(),
-      status: 'open',
-      ownerUserId: backendActivity.createdBy,
-      relatedType: 'project',
-      relatedId: activity.relatedId || '',
-      notes: backendActivity.name,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+  async createActivity(orgId: string, activity: Partial<Activity>): Promise<Activity> {
+    throw new Error('Not implemented in backend');
   }
 
-  async updateActivity(_activityId: string, _activity: Partial<Activity>): Promise<void> {
-    throw new Error('Not implemented in backend mode');
+  async updateActivity(activityId: string, activity: Partial<Activity>): Promise<void> {
+    throw new Error('Not implemented in backend');
   }
 
-  async deleteActivity(_activityId: string): Promise<void> {
-    throw new Error('Not implemented in backend mode');
+  async deleteActivity(activityId: string): Promise<void> {
+    throw new Error('Not implemented in backend');
   }
 
   // ============================================================================
-  // CONTRATOS
+  // CRM - CONTRATOS
   // ============================================================================
 
-  async listContracts(orgId: OrgId): Promise<Contract[]> {
+  async listContracts(orgId: string): Promise<Contract[]> {
     const contracts = await this.actor.listContracts(orgId);
-    return contracts.map((c) => ({
+    return contracts.map(c => ({
       id: c.id,
       orgId: c.orgId,
       contactId: '',
       name: c.name,
       mrr: Number(c.value),
-      startDate: new Date(Number(c.startDate) / 1000000),
-      renewalDate: c.endDate ? new Date(Number(c.endDate) / 1000000) : new Date(),
-      status: 'active' as const,
-      createdAt: new Date(),
+      startDate: this.nanoToDate(c.startDate),
+      renewalDate: c.endDate ? this.nanoToDate(c.endDate) : new Date(),
+      status: c.isCancelled ? 'canceled' as const : 'active' as const,
+      cancelDate: c.isCancelled ? new Date() : undefined,
+      cancelReason: c.cancellationReason || undefined,
+      createdAt: this.nanoToDate(c.startDate),
       updatedAt: new Date(),
     }));
   }
 
-  async createContract(orgId: OrgId, contract: Partial<Contract>): Promise<Contract> {
-    const backendContract = {
+  async createContract(orgId: string, contract: Partial<Contract>): Promise<Contract> {
+    const newContract = {
       id: `contract-${Date.now()}`,
       orgId,
       name: contract.name || '',
       value: BigInt(contract.mrr || 0),
-      startDate: BigInt(contract.startDate?.getTime() || Date.now() * 1000000),
-      endDate: contract.renewalDate ? BigInt(contract.renewalDate.getTime() * 1000000) : undefined,
-      createdBy: (await this.actor.getCallerUserProfile())?.currentOrgId || '',
+      startDate: this.dateToNano(contract.startDate || new Date()),
+      endDate: contract.renewalDate ? this.dateToNano(contract.renewalDate) : undefined,
+      createdBy: await this.getCurrentPrincipal(),
+      isCancelled: false,
+      cancellationReason: '',
     };
-    
-    await this.actor.createContract(backendContract as any);
+    await this.actor.createContract(newContract);
     return {
-      id: backendContract.id,
+      ...contract,
+      id: newContract.id,
       orgId,
-      contactId: '',
-      name: backendContract.name,
-      mrr: Number(backendContract.value),
-      startDate: new Date(Number(backendContract.startDate) / 1000000),
-      renewalDate: backendContract.endDate ? new Date(Number(backendContract.endDate) / 1000000) : new Date(),
+      contactId: contract.contactId || '',
+      name: contract.name || '',
+      mrr: contract.mrr || 0,
+      startDate: contract.startDate || new Date(),
+      renewalDate: contract.renewalDate || new Date(),
       status: 'active',
       createdAt: new Date(),
       updatedAt: new Date(),
-    };
+    } as Contract;
   }
 
-  async updateContract(_contractId: string, _contract: Partial<Contract>): Promise<void> {
-    throw new Error('Not implemented in backend mode');
+  async updateContract(contractId: string, contract: Partial<Contract>): Promise<void> {
+    throw new Error('Not implemented in backend');
   }
 
-  async deleteContract(_contractId: string): Promise<void> {
-    throw new Error('Not implemented in backend mode');
+  async deleteContract(contractId: string): Promise<void> {
+    throw new Error('Not implemented in backend');
+  }
+
+  async cancelContract(contractId: string, cancelReason: string): Promise<void> {
+    await this.actor.cancelContract(contractId, cancelReason);
   }
 
   // ============================================================================
-  // FINANÇAS
+  // FINANCEIRO
   // ============================================================================
 
-  async listFinanceTransactions(orgId: OrgId): Promise<FinanceTransaction[]> {
+  async listFinanceTransactions(orgId: string): Promise<FinanceTransaction[]> {
     const transactions = await this.actor.listFinanceTransactions(orgId);
-    return transactions.map((t) => ({
+    return transactions.map(t => ({
       id: t.id,
       orgId: t.orgId,
       type: 'income' as const,
+      date: this.nanoToDate(t.createdAt),
       value: Number(t.amount),
+      category: '',
       description: t.description,
-      category: 'other' as const,
-      date: new Date(Number(t.createdAt) / 1000000),
       isRecurring: false,
-      createdAt: new Date(Number(t.createdAt) / 1000000),
-      updatedAt: new Date(Number(t.createdAt) / 1000000),
+      createdAt: this.nanoToDate(t.createdAt),
+      updatedAt: new Date(),
     }));
   }
 
-  async createFinanceTransaction(
-    orgId: OrgId,
-    transaction: Partial<FinanceTransaction>
-  ): Promise<FinanceTransaction> {
-    const backendTransaction = {
-      id: `transaction-${Date.now()}`,
-      orgId,
-      description: transaction.description || '',
-      amount: BigInt(transaction.value || 0),
-      createdBy: (await this.actor.getCallerUserProfile())?.currentOrgId || '',
-      createdAt: BigInt(Date.now() * 1000000),
-    };
-    
-    await this.actor.createFinanceTransaction(backendTransaction as any);
-    return {
-      id: backendTransaction.id,
-      orgId,
-      type: 'income',
-      value: Number(backendTransaction.amount),
-      description: backendTransaction.description,
-      category: 'other',
-      date: new Date(),
-      isRecurring: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+  async createFinanceTransaction(orgId: string, transaction: Partial<FinanceTransaction>): Promise<FinanceTransaction> {
+    throw new Error('Not implemented in backend');
   }
 
-  async updateFinanceTransaction(
-    _transactionId: string,
-    _transaction: Partial<FinanceTransaction>
-  ): Promise<void> {
-    throw new Error('Not implemented in backend mode');
+  async updateFinanceTransaction(transactionId: string, transaction: Partial<FinanceTransaction>): Promise<void> {
+    throw new Error('Not implemented in backend');
   }
 
-  async deleteFinanceTransaction(_transactionId: string): Promise<void> {
-    throw new Error('Not implemented in backend mode');
+  async deleteFinanceTransaction(transactionId: string): Promise<void> {
+    throw new Error('Not implemented in backend');
   }
 
   // ============================================================================
-  // NPS CAMPAIGNS
+  // NPS
   // ============================================================================
 
-  async listNpsCampaigns(orgId: OrgId): Promise<NpsCampaign[]> {
+  async listNpsCampaigns(orgId: string): Promise<NpsCampaign[]> {
     const campaigns = await this.actor.listNpsCampaigns(orgId);
-    return campaigns.map((c) => ({
+    return campaigns.map(c => ({
       id: c.id,
       orgId: c.orgId,
-      periodKey: new Date(Number(c.createdAt) / 1000000).toISOString().slice(0, 7),
+      periodKey: '',
       status: c.status === 'active' ? 'active' as const : 'closed' as const,
-      createdAt: new Date(Number(c.createdAt) / 1000000),
-      updatedAt: new Date(Number(c.createdAt) / 1000000),
-    }));
-  }
-
-  async createNpsCampaign(orgId: OrgId, campaign: Partial<NpsCampaign>): Promise<NpsCampaign> {
-    const backendCampaign = {
-      id: `nps-${Date.now()}`,
-      orgId,
-      name: campaign.periodKey || new Date().toISOString().slice(0, 7),
-      status: campaign.status || 'active',
-      createdAt: BigInt(Date.now() * 1000000),
-      createdBy: (await this.actor.getCallerUserProfile())?.currentOrgId || '',
-    };
-    
-    await this.actor.createNpsCampaign(backendCampaign as any);
-    return {
-      id: backendCampaign.id,
-      orgId,
-      periodKey: backendCampaign.name,
-      status: backendCampaign.status === 'active' ? 'active' : 'closed',
-      createdAt: new Date(),
+      createdAt: this.nanoToDate(c.createdAt),
       updatedAt: new Date(),
-    };
-  }
-
-  // ============================================================================
-  // REPORTS
-  // ============================================================================
-
-  async listReports(orgId: OrgId): Promise<any[]> {
-    const reports = await this.actor.listReports(orgId);
-    return reports.map((r) => ({
-      id: r.id,
-      orgId: r.orgId,
-      type: r.reportType,
-      period: r.period,
-      format: r.format,
-      generatedAt: new Date(Number(r.generatedAt) / 1000000),
-      generatedBy: r.generatedBy.toString(),
     }));
   }
 
-  async generateReport(orgId: OrgId, report: any): Promise<void> {
-    const backendReport = {
-      id: `report-${Date.now()}`,
+  async createNpsCampaign(orgId: string, campaign: Partial<NpsCampaign>): Promise<NpsCampaign> {
+    throw new Error('Not implemented in backend');
+  }
+
+  async listNpsResponses(orgId: string, startDate: Date, endDate: Date): Promise<NpsResponse[]> {
+    const responses = await this.actor.getNpsResponsesForPeriod(
       orgId,
-      reportType: report.type || 'sales',
-      period: report.period || 'monthly',
-      format: report.format || 'pdf',
-      generatedAt: BigInt(Date.now() * 1000000),
-      generatedBy: (await this.actor.getCallerUserProfile())?.currentOrgId || '',
-    };
-    
-    await this.actor.generateReport(backendReport as any);
+      this.dateToNano(startDate),
+      this.dateToNano(endDate)
+    );
+    return responses.map(r => ({
+      id: `${r.campaignId}-${r.contractId}`,
+      orgId: r.orgId,
+      campaignId: r.campaignId,
+      contactId: r.contractId,
+      score: Number(r.score),
+      comment: r.comment,
+      createdAt: this.nanoToDate(r.submittedAt),
+    }));
+  }
+
+  async createNpsResponse(orgId: string, response: Partial<NpsResponse>): Promise<NpsResponse> {
+    throw new Error('Not implemented in backend');
   }
 
   // ============================================================================
-  // TEAM MANAGEMENT
+  // REPORTS & TEAM
   // ============================================================================
+
+  async listReports(orgId: string): Promise<any[]> {
+    return [];
+  }
+
+  async generateReport(orgId: string, report: any): Promise<void> {
+    throw new Error('Not implemented in backend');
+  }
 
   async isCallerAdmin(): Promise<boolean> {
     return await this.actor.isCallerAdmin();
   }
 
-  async inviteTeamMember(orgId: OrgId, invitation: any): Promise<void> {
-    const backendInvitation = {
-      id: `invitation-${Date.now()}`,
-      orgId,
-      inviteeIdentifier: invitation.email || '',
-      invitedBy: (await this.actor.getCallerUserProfile())?.currentOrgId || '',
-      invitedAt: BigInt(Date.now() * 1000000),
-      status: 'pending',
-    };
-    
-    await this.actor.inviteTeamMember(backendInvitation as any);
+  async inviteTeamMember(orgId: string, invitation: any): Promise<void> {
+    throw new Error('Not implemented in backend');
   }
 
-  async listOrgMembers(orgId: OrgId): Promise<any[]> {
+  async listOrgMembers(orgId: string): Promise<any[]> {
     const members = await this.actor.listOrgMembers(orgId);
-    return members.map((m) => ({
-      id: m.toString(),
-      principal: m.toString(),
-    }));
+    return members.map(m => ({ id: m.toString() }));
   }
 
-  async listTeamInvitations(orgId: OrgId): Promise<any[]> {
-    const invitations = await this.actor.listTeamInvitations(orgId);
-    return invitations.map((i) => ({
-      id: i.id,
-      orgId: i.orgId,
-      email: i.inviteeIdentifier,
-      status: i.status,
-      invitedAt: new Date(Number(i.invitedAt) / 1000000),
-      invitedBy: i.invitedBy.toString(),
-    }));
+  async listTeamInvitations(orgId: string): Promise<any[]> {
+    return [];
   }
 }

@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { QueryBoundary } from '../../components/states/QueryBoundary';
 import { Plus, Calendar } from 'lucide-react';
 import { strings } from '../../i18n/strings.ptBR';
-import type { Task, Pillar } from '../../types/model';
+import type { Task, Pillar, TaskStatus } from '../../types/model';
 
 export default function TasksPage() {
   const { client, isReady } = useStage1Client();
@@ -48,7 +48,7 @@ export default function TasksPage() {
   });
 
   const updateTaskStatusMutation = useMutation({
-    mutationFn: ({ taskId, status }: { taskId: string; status: string }) =>
+    mutationFn: ({ taskId, status }: { taskId: string; status: TaskStatus }) =>
       client.updateTaskStatus(taskId, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', activeProjectId] });
@@ -67,7 +67,7 @@ export default function TasksPage() {
     });
   };
 
-  const handleStatusChange = (taskId: string, newStatus: string) => {
+  const handleStatusChange = (taskId: string, newStatus: TaskStatus) => {
     updateTaskStatusMutation.mutate({ taskId, status: newStatus });
   };
 
