@@ -1,100 +1,46 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-10T08:21:33.340Z",
-  "summary": "The diff adds frontend-side backend-client initialization state handling (loading/error/retry) and gates CRM contact queries/mutations on readiness, but it does not provide evidence that backend actor secret-token initialization is removed/fixed, nor that the backend implements the required member invitation/membership APIs. The new Team UI appears wired to non-existent backend methods and even states the backend is not implemented. There are also new/remaining non-English user-facing strings despite the English-text constraint.",
+  "generatedAt": "2026-02-10T22:44:31.053Z",
+  "summary": "The diff does not provide evidence that the Pipeline page <h1> header text was changed to exactly \"Pipeline\". Instead, the visible changes add board-selection persistence logic and expand URL/session parameter utilities, which go beyond the requested “header text only” change.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Fix backend actor initialization so the app does not require a missing secret token to become usable for normal authenticated users (Internet Identity).",
-      "reason": "The diff shows new frontend initialization UI and a client proxy error, but provides no evidence that the backend actor initialization no longer depends on a secret token or URL parameter; backend/main.mo changes shown are type definitions only (truncated) with no initialization/token logic visible.",
+      "requirement": "Update the Pipeline page header <h1> to display exactly \"Pipeline\" instead of \"Pipeline de Vendas\" (header only), without changing description text, nav labels, or browser tab title.",
+      "reason": "The provided diff snippet for PipelinePage.tsx is truncated and does not include the header <h1> rendering. There is no explicit evidence in the shown changes that the <h1> text was modified to \"Pipeline\" or that other text was left unchanged.",
       "evidence": [
-        "backend/main.mo (truncated)",
-        "frontend/src/hooks/useStage1Client.ts",
-        "frontend/src/components/states/BackendClientInitState.tsx"
-      ]
-    },
-    {
-      "id": "REQ-1",
-      "requirement": "If actor initialization fails, the UI shows a clear error state and provides a retry action instead of throwing \"Backend client not ready\" on actions.",
-      "reason": "BackendClientInitState.tsx provides an error UI with a retry button, but useStage1Client still returns a Proxy that throws an error when accessed before actor readiness, which can still surface as thrown errors during actions if any call happens before readiness.",
-      "evidence": [
-        "frontend/src/hooks/useStage1Client.ts",
-        "frontend/src/components/states/BackendClientInitState.tsx"
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "requirement": "Make CRM contact create/update/delete reliable end-to-end by aligning frontend payloads with backend expectations (caller-derived fields handled by backend) and ensuring mutations cannot run until backend client is ready.",
-      "reason": "ContactsPage gates queries on isReady and org selection, but the diff does not show the BackendClient contact create/update/delete implementations (truncated), so there is insufficient evidence that payload alignment (e.g., not sending createdBy / backend derives it) is fully implemented end-to-end.",
-      "evidence": [
-        "frontend/src/pages/internal/ContactsPage.tsx",
-        "frontend/src/data/api/backendClient.ts (truncated)"
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "requirement": "Backend exposes member invitation operations: create invitation (by email/identifier), list pending invitations, revoke invitation, and accept invitation (by logged-in principal).",
-      "reason": "No backend API functions for invitations/acceptance are shown; backend/main.mo diff excerpt only shows type additions (e.g., TeamInvitation) without corresponding public methods.",
-      "evidence": [
-        "backend/main.mo (truncated)"
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "requirement": "Backend exposes operations to list organization members (principals + profile info where available) for org admins/creators, with proper permissioning.",
-      "reason": "No evidence of backend list-members endpoints or permission checks is present in the diff summary; TeamManagementTab calls client.listOrgMembers but the backing actor methods are not shown.",
-      "evidence": [
-        "backend/main.mo (truncated)",
-        "frontend/src/pages/internal/settings/TeamManagementTab.tsx (truncated)"
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "requirement": "Replace static Team/Settings UI with functional Team management UI wired to backend member/invitation APIs (invite, view pending invites, view members, revoke/remove, update role if supported).",
-      "reason": "The new TeamManagementTab includes an Alert explicitly stating backend support is not implemented yet, indicating the UI is not fully functional end-to-end. Also, remove/revoke/update-role functionality is not evidenced in the truncated content.",
-      "evidence": [
-        "frontend/src/pages/internal/settings/TeamManagementTab.tsx (truncated)",
-        "frontend/src/pages/internal/SettingsPage.tsx (truncated)"
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "requirement": "Ensure profile bootstrapping works with owner-managed membership: if no backend profile, show clear next step (create profile / accept invite) appropriate to membership state; update auth state after saving profile; block org access without accepted membership.",
-      "reason": "The diff summary does not include concrete UI/flow changes demonstrating onboarding states tied to invitation acceptance/membership, nor evidence that routes/org selection are blocked based on accepted membership status (only general router/provider summaries are mentioned, without detailed diff evidence).",
-      "evidence": [
-        "frontend-file-summaries.txt (truncated)"
+        "frontend/src/pages/internal/PipelinePage.tsx (truncated)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "User-facing Portuguese (non-English) messages and labels introduced/kept, violating the constraint to use English for any user-facing text added or modified.",
-      "reason": "The BuildRequest constraint requires English for user-facing text; the diff includes Portuguese user-facing error/toast strings (e.g., \"Categoria inválida selecionada\", \"Documento enviado com sucesso!\", \"Falha ao enviar documento\").",
+      "description": "Persist selected kanban board per org in session storage (read/write selectedBoardId with storeSessionParameter/getSessionParameter and default to first board).",
+      "reason": "BuildRequest requires a text-only header change; no board persistence or selection-state behavior changes were requested.",
       "evidence": [
-        "frontend/src/pages/portal/DocumentsPage.tsx (truncated)",
-        "frontend-file-summaries.txt (mentions pt-BR strings and UI states in Portuguese)"
+        "frontend/src/pages/internal/PipelinePage.tsx (truncated)"
       ]
     },
     {
-      "description": "Removal of mock mode / forcing BACKEND mode across the app.",
-      "reason": "The BuildRequest does not request removing mock mode; the diff summary states mock mode was completely removed and backend mode forced, which is an unrequested behavioral/architecture change.",
+      "description": "Add/expand URL parameter utilities to persist parameters in sessionStorage (storeSessionParameter, getSessionParameter, getPersistedUrlParameter, clearSessionParameter, hash param clearing logic).",
+      "reason": "BuildRequest explicitly scopes change to Pipeline page header text only; URL/session parameter persistence utilities are unrelated and not requested.",
       "evidence": [
-        "frontend-file-summaries.txt (frontend/src/config/dataMode.ts; frontend/src/data/client.ts)"
+        "frontend/src/utils/urlParams.ts (truncated)"
+      ]
+    },
+    {
+      "description": "Update project tracking state (new_feature_requests entries AR-1/AR-2 marked pending).",
+      "reason": "No requirement asked to modify project_state.json; requested change is purely UI header text.",
+      "evidence": [
+        "project_state.json"
       ]
     }
   ],
-  "confidence": 0.72,
+  "confidence": 0.68,
   "changed_files": [
-    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/states/BackendClientInitState.tsx",
-    "frontend/src/data/api/backendClient.ts",
-    "frontend/src/hooks/useStage1Client.ts",
-    "frontend/src/pages/internal/ContactsPage.tsx",
-    "frontend/src/pages/internal/SettingsPage.tsx",
-    "frontend/src/pages/internal/settings/TeamManagementTab.tsx",
-    "frontend/src/pages/portal/DocumentsPage.tsx",
+    "frontend/src/pages/internal/PipelinePage.tsx",
+    "frontend/src/utils/urlParams.ts",
     "project_state.json"
   ]
 }

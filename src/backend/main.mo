@@ -1,9 +1,13 @@
 import Map "mo:core/Map";
+import Array "mo:core/Array";
 import Text "mo:core/Text";
 import Float "mo:core/Float";
 import Iter "mo:core/Iter";
 import Runtime "mo:core/Runtime";
+import Nat "mo:core/Nat";
+import Time "mo:core/Time";
 import Principal "mo:core/Principal";
+import List "mo:core/List";
 import MixinAuthorization "authorization/MixinAuthorization";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
@@ -11,6 +15,7 @@ import AccessControl "authorization/access-control";
 
 actor {
   type OrgId = Text;
+  type BoardId = Text;
 
   type ProjectPhase = {
     #planning;
@@ -214,6 +219,78 @@ actor {
     count : Nat;
   };
 
+  public type PipelineColumn = {
+    id : Text;
+    name : Text;
+    position : Nat;
+    orgId : OrgId;
+    boardId : BoardId;
+    createdBy : Principal;
+    createdAt : Int;
+  };
+
+  public type ColumnUpdate = {
+    id : Text;
+    name : Text;
+    newPosition : Nat;
+    boardId : BoardId;
+  };
+
+  type CardId = Text;
+
+  public type FieldType = {
+    #text : Text;
+    #number : Float;
+    #date : Int;
+    #singleSelect : Text;
+    #multiSelect : [Text];
+    #tags : [Text];
+  };
+
+  public type CustomFieldDefinition = {
+    name : Text;
+    fieldType : FieldType;
+    options : [Text]; // for select/multi-select
+  };
+
+  public type CustomField = {
+    name : Text;
+    value : FieldType;
+  };
+
+  public type KanbanCard = {
+    id : CardId;
+    title : Text;
+    description : Text;
+    dueDate : ?Int;
+    columnId : Text;
+    orgId : OrgId;
+    boardId : BoardId;
+    createdBy : Principal;
+    createdAt : Int;
+    updatedAt : Int;
+    customFields : [CustomField];
+  };
+
+  public type CardInput = {
+    title : Text;
+    description : Text;
+    dueDate : ?Int;
+    columnId : Text;
+    orgId : OrgId;
+    boardId : BoardId;
+    customFields : [CustomField];
+  };
+
+  public type KanbanBoard = {
+    id : BoardId;
+    name : Text;
+    orgId : OrgId;
+    createdBy : Principal;
+    createdAt : Int;
+    customFieldDefinitions : [CustomFieldDefinition];
+  };
+
   let userProfiles = Map.empty<Principal, UserProfile>();
   let organizations = Map.empty<OrgId, Organization>();
   let orgMemberships = Map.empty<Principal, [OrgId]>();
@@ -229,6 +306,10 @@ actor {
   let financeTransactions = Map.empty<Text, FinanceTransaction>();
   let teamInvitations = Map.empty<Text, TeamInvitation>();
   let supportMessages = Map.empty<Text, SupportMessage>();
+
+  let pipelineColumns = Map.empty<Text, PipelineColumn>();
+  let kanbanCards = Map.empty<Text, KanbanCard>();
+  let kanbanBoards = Map.empty<Text, KanbanBoard>();
 
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
@@ -267,7 +348,10 @@ actor {
   };
 
   func verifyOrgAccess(caller : Principal, orgId : OrgId) {
-    // Firsty staff can access all organizations
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can access organization data");
+    };
+
     if (isFirstyStaff(caller)) {
       return;
     };
@@ -285,7 +369,10 @@ actor {
   };
 
   func verifyOrgManagementAccess(caller : Principal, orgId : OrgId) {
-    // Firsty staff can manage all organizations
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can manage organizations");
+    };
+
     if (isFirstyStaff(caller)) {
       return;
     };
@@ -298,12 +385,14 @@ actor {
   };
 
   func verifyDataEditAccess(caller : Principal, orgId : OrgId) {
-    // Firsty staff can edit data for any organization
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can edit data");
+    };
+
     if (isFirstyStaff(caller)) {
       return;
     };
 
-    // Regular users must be members of the organization
     if (not isMemberOfOrg(caller, orgId)) {
       Runtime.trap("Unauthorized: Cannot edit data for this organization");
     };
@@ -328,7 +417,6 @@ actor {
       Runtime.trap("Unauthorized: Only users can view profiles");
     };
 
-    // Users can view their own profile, Firsty staff can view any profile
     if (caller != user and not isFirstyStaff(caller)) {
       Runtime.trap("Unauthorized: Can only view your own profile");
     };
@@ -340,11 +428,9 @@ actor {
       Runtime.trap("Unauthorized: Only users can save profiles");
     };
 
-    // Prevent privilege escalation - users cannot assign themselves Firsty staff roles
     let existingProfile = userProfiles.get(caller);
     switch (existingProfile) {
       case null {
-        // New profile - cannot start as Firsty staff
         switch (profile.appRole) {
           case (#FIRSTY_ADMIN or #FIRSTY_CONSULTANT) {
             Runtime.trap("Unauthorized: Cannot assign Firsty staff roles to yourself");
@@ -353,7 +439,6 @@ actor {
         };
       };
       case (?existing) {
-        // Existing profile - cannot change to/from Firsty staff roles unless already Firsty staff
         let wasFirstyStaff = switch (existing.appRole) {
           case (#FIRSTY_ADMIN or #FIRSTY_CONSULTANT) { true };
           case (_) { false };
@@ -368,25 +453,20 @@ actor {
       };
     };
 
-    // Verify role constraints
     switch (profile.appRole) {
       case (#OWNER_ADMIN or #MEMBER) {
-        // Must have exactly one organization
         switch (profile.currentOrgId) {
           case null {
             Runtime.trap("OWNER_ADMIN and MEMBER must belong to an organization");
           };
           case (?orgId) {
-            // Verify user is actually a member of this organization
             if (not isMemberOfOrg(caller, orgId)) {
               Runtime.trap("Cannot set currentOrgId to an organization you are not a member of");
             };
           };
         };
       };
-      case (#FIRSTY_ADMIN or #FIRSTY_CONSULTANT) {
-        // Can access all organizations, currentOrgId is optional
-      };
+      case (#FIRSTY_ADMIN or #FIRSTY_CONSULTANT) {};
     };
 
     userProfiles.add(caller, profile);
@@ -427,12 +507,10 @@ actor {
       Runtime.trap("Unauthorized: Only users can list organizations");
     };
 
-    // Firsty staff can see all organizations
     if (isFirstyStaff(caller)) {
       return organizations.values().toArray();
     };
 
-    // Regular users can only see their organizations
     let userOrgs = getUserOrgs(caller);
     let orgsIter = organizations.values();
     let filteredIter = orgsIter.filter(func(org) {
@@ -467,10 +545,8 @@ actor {
     };
     verifyOrgManagementAccess(caller, orgId);
 
-    // Remove organization
     organizations.remove(orgId);
 
-    // Remove all memberships for this organization
     for ((user, orgs) in orgMemberships.entries()) {
       let filteredOrgs = orgs.filter(func(org) { org != orgId });
       if (filteredOrgs.size() > 0) {
@@ -548,5 +624,397 @@ actor {
     let contactsIter = contacts.values();
     let filteredIter = contactsIter.filter(func(contact) { contact.orgId == orgId });
     filteredIter.toArray();
+  };
+
+  // Board management methods
+  public shared ({ caller }) func createKanbanBoard(orgId : OrgId, name : Text) : async BoardId {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can create boards");
+    };
+    verifyDataEditAccess(caller, orgId);
+    let boardId = orgId # "-" # name;
+    let newBoard : KanbanBoard = {
+      id = boardId;
+      name;
+      orgId;
+      createdBy = caller;
+      createdAt = Time.now();
+      customFieldDefinitions = [];
+    };
+    kanbanBoards.add(boardId, newBoard);
+    boardId;
+  };
+
+  public shared ({ caller }) func updateKanbanBoard(boardId : BoardId, name : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can update boards");
+    };
+    let board = switch (kanbanBoards.get(boardId)) {
+      case (null) { Runtime.trap("Board not found") };
+      case (?b) { b };
+    };
+    verifyDataEditAccess(caller, board.orgId);
+    let updatedBoard = {
+      board with name;
+    };
+    kanbanBoards.add(boardId, updatedBoard);
+  };
+
+  public shared ({ caller }) func deleteKanbanBoard(boardId : BoardId) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can delete boards");
+    };
+    let board = switch (kanbanBoards.get(boardId)) {
+      case (null) { Runtime.trap("Board not found") };
+      case (?b) { b };
+    };
+    verifyDataEditAccess(caller, board.orgId);
+    kanbanBoards.remove(boardId);
+  };
+
+  public query ({ caller }) func getKanbanBoard(boardId : BoardId) : async KanbanBoard {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view boards");
+    };
+    switch (kanbanBoards.get(boardId)) {
+      case (null) { Runtime.trap("Board not found") };
+      case (?board) {
+        verifyOrgAccess(caller, board.orgId);
+        board;
+      };
+    };
+  };
+
+  public query ({ caller }) func listKanbanBoards(orgId : OrgId) : async [KanbanBoard] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can list boards");
+    };
+    verifyOrgAccess(caller, orgId);
+    let boardsIter = kanbanBoards.values();
+    let filteredIter = boardsIter.filter(func(board) { board.orgId == orgId });
+    filteredIter.toArray();
+  };
+
+  // Board scoped column logic
+  public query ({ caller }) func getPipelineColumns(orgId : OrgId, boardId : BoardId) : async [PipelineColumn] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view pipeline columns");
+    };
+    verifyOrgAccess(caller, orgId);
+    let columnsIter = pipelineColumns.values();
+    let filteredIter = columnsIter.filter(func(column) {
+      column.orgId == orgId and column.boardId == boardId
+    });
+    filteredIter.toArray();
+  };
+
+  public query ({ caller }) func getPipelineColumn(columnId : Text, boardId : BoardId) : async ?PipelineColumn {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view pipeline columns");
+    };
+    let column = pipelineColumns.get(columnId);
+    switch (column) {
+      case (null) { return null };
+      case (?col) {
+        verifyOrgAccess(caller, col.orgId);
+        if (col.boardId != boardId) {
+          Runtime.trap("Column does not exist for this board");
+        };
+      };
+    };
+    column;
+  };
+
+  public shared ({ caller }) func createPipelineColumn(orgId : OrgId, boardId : BoardId, name : Text, position : Nat, timestamp : Int) : async Text {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can create pipeline columns");
+    };
+    verifyDataEditAccess(caller, orgId);
+    let columnId = name # orgId # boardId # "-" # Int.toText(timestamp);
+    let column : PipelineColumn = {
+      id = columnId;
+      name = name;
+      position = position;
+      orgId = orgId;
+      boardId = boardId;
+      createdBy = caller;
+      createdAt = timestamp;
+    };
+    pipelineColumns.add(columnId, column);
+    columnId;
+  };
+
+  public shared ({ caller }) func updatePipelineColumn(columnId : Text, boardId : BoardId, newName : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can update pipeline columns");
+    };
+
+    let column = switch (pipelineColumns.get(columnId)) {
+      case (null) { Runtime.trap("Column not found") };
+      case (?c) { c };
+    };
+
+    verifyDataEditAccess(caller, column.orgId);
+
+    if (column.boardId != boardId) {
+      Runtime.trap("Column does not exist for this board");
+    };
+
+    let updatedColumn = {
+      column with
+      name = newName;
+    };
+    pipelineColumns.add(columnId, updatedColumn);
+  };
+
+  public shared ({ caller }) func deletePipelineColumn(columnId : Text, boardId : BoardId) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can delete pipeline columns");
+    };
+
+    let column = switch (pipelineColumns.get(columnId)) {
+      case (null) { Runtime.trap("Column not found") };
+      case (?c) { c };
+    };
+
+    verifyDataEditAccess(caller, column.orgId);
+
+    if (column.boardId != boardId) {
+      Runtime.trap("Column does not exist for this board");
+    };
+
+    pipelineColumns.remove(columnId);
+  };
+
+  public shared ({ caller }) func reorderPipelineColumns(orgId : OrgId, boardId : BoardId, updates : [ColumnUpdate]) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can reorder pipeline columns");
+    };
+    verifyDataEditAccess(caller, orgId);
+
+    let idMap = Map.empty<Text, Nat>();
+    let positionMap = Map.empty<Nat, Text>();
+    for (u in updates.values()) {
+      if (idMap.containsKey(u.id)) {
+        Runtime.trap("Duplicate column id in request: " # u.id);
+      };
+      idMap.add(u.id, u.newPosition);
+
+      if (positionMap.containsKey(u.newPosition)) {
+        Runtime.trap("Duplicate column position in request: " # u.newPosition.toText());
+      };
+      positionMap.add(u.newPosition, u.id);
+    };
+
+    for (u in updates.values()) {
+      let column = switch (pipelineColumns.get(u.id)) {
+        case (null) { Runtime.trap("Column not found: " # u.id) };
+        case (?c) { c };
+      };
+
+      if (column.orgId != orgId) {
+        Runtime.trap("Column does not belong to specified org: " # u.id);
+      };
+
+      if (column.boardId != boardId) {
+        Runtime.trap("Column does not exist for this board");
+      };
+
+      let updatedColumn = {
+        column with
+        name = u.name;
+        position = u.newPosition;
+      };
+      pipelineColumns.add(u.id, updatedColumn);
+    };
+  };
+
+  public shared ({ caller }) func renamePipelineColumn(columnId : Text, boardId : BoardId, newName : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can rename pipeline columns");
+    };
+
+    let column = switch (pipelineColumns.get(columnId)) {
+      case (null) { Runtime.trap("Column not found") };
+      case (?c) { c };
+    };
+
+    verifyDataEditAccess(caller, column.orgId);
+
+    if (column.boardId != boardId) {
+      Runtime.trap("Column does not exist for this board");
+    };
+
+    let updatedColumn = {
+      column with name = newName;
+    };
+    pipelineColumns.add(columnId, updatedColumn);
+  };
+
+  // Custom field definition management
+  public shared ({ caller }) func addOrUpdateCustomFieldDefinition(orgId : OrgId, boardId : BoardId, definition : CustomFieldDefinition) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can manage custom field definitions");
+    };
+    verifyDataEditAccess(caller, orgId);
+    let board = switch (kanbanBoards.get(boardId)) {
+      case (null) { Runtime.trap("Board not found") };
+      case (?b) { b };
+    };
+    if (board.orgId != orgId) {
+      Runtime.trap("Board does not belong to specified org");
+    };
+
+    let existingDefs = board.customFieldDefinitions.filter(func(def) { def.name != definition.name });
+    let updatedDefs = existingDefs.concat([definition]);
+    let updatedBoard = {
+      board with customFieldDefinitions = updatedDefs;
+    };
+    kanbanBoards.add(boardId, updatedBoard);
+  };
+
+  // Kanban Card Functions (now board scoped)
+
+  public shared ({ caller }) func createCard(input : CardInput) : async CardId {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can create cards");
+    };
+    verifyDataEditAccess(caller, input.orgId);
+    _validateColumn(input.columnId, input.orgId, input.boardId);
+
+    let card : KanbanCard = {
+      id = input.title # input.orgId # Int.toText(Time.now());
+      title = input.title;
+      description = input.description;
+      dueDate = input.dueDate;
+      columnId = input.columnId;
+      orgId = input.orgId;
+      boardId = input.boardId;
+      createdBy = caller;
+      createdAt = Time.now();
+      updatedAt = Time.now();
+      customFields = input.customFields;
+    };
+
+    kanbanCards.add(card.id, card);
+    card.id;
+  };
+
+  public shared ({ caller }) func updateCard(cardId : CardId, input : CardInput) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can update cards");
+    };
+    let card = _getCardOrTrap(cardId);
+    verifyDataEditAccess(caller, card.orgId);
+
+    _validateColumn(input.columnId, card.orgId, card.boardId);
+
+    if (card.boardId != input.boardId) {
+      Runtime.trap("Cannot move existing card to a different board");
+    };
+
+    let updatedCard = {
+      card with
+      title = input.title;
+      description = input.description;
+      dueDate = input.dueDate;
+      columnId = input.columnId;
+      updatedAt = Time.now();
+      customFields = input.customFields;
+    };
+    kanbanCards.add(cardId, updatedCard);
+  };
+
+  public shared ({ caller }) func moveCard(cardId : CardId, destinationColumnId : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can move cards");
+    };
+    let card = _getCardOrTrap(cardId);
+    verifyDataEditAccess(caller, card.orgId);
+    _validateColumn(destinationColumnId, card.orgId, card.boardId);
+
+    let updatedCard = {
+      card with
+      columnId = destinationColumnId;
+      updatedAt = Time.now();
+    };
+    kanbanCards.add(cardId, updatedCard);
+  };
+
+  public shared ({ caller }) func deleteCard(cardId : CardId) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can delete cards");
+    };
+    let card = _getCardOrTrap(cardId);
+    verifyDataEditAccess(caller, card.orgId);
+    kanbanCards.remove(cardId);
+  };
+
+  public query ({ caller }) func getCard(cardId : CardId) : async KanbanCard {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view cards");
+    };
+    let card = _getCardOrTrap(cardId);
+    verifyOrgAccess(caller, card.orgId);
+    card;
+  };
+
+  public query ({ caller }) func getCardsByColumn(columnId : Text, boardId : BoardId) : async [KanbanCard] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view cards");
+    };
+
+    let column = switch (pipelineColumns.get(columnId)) {
+      case (null) { Runtime.trap("Column not found") };
+      case (?c) { c };
+    };
+
+    verifyOrgAccess(caller, column.orgId);
+
+    if (column.boardId != boardId) {
+      Runtime.trap("Column does not exist for this board");
+    };
+
+    let cardsIter = kanbanCards.values();
+    let filteredIter = cardsIter.filter(func(card) {
+      card.columnId == columnId and card.boardId == boardId
+    });
+    filteredIter.toArray();
+  };
+
+  public query ({ caller }) func getCardsByBoard(orgId : OrgId, boardId : BoardId) : async [KanbanCard] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view cards");
+    };
+    verifyOrgAccess(caller, orgId);
+
+    let cardsIter = kanbanCards.values();
+    let filteredIter = cardsIter.filter(func(card) {
+      card.orgId == orgId and card.boardId == boardId
+    });
+    filteredIter.toArray();
+  };
+
+  func _validateColumn(columnId : Text, orgId : OrgId, boardId : BoardId) {
+    switch (pipelineColumns.get(columnId)) {
+      case (null) {
+        Runtime.trap("Column not found (" # columnId # "); Use [component \"KANBAN_COLUMNS\"] to create columns first.");
+      };
+      case (?col) {
+        if (col.orgId != orgId) {
+          Runtime.trap("Column does not belong to specified org");
+        };
+        if (col.boardId != boardId) {
+          Runtime.trap("Column does not exist for this board");
+        };
+      };
+    };
+  };
+
+  func _getCardOrTrap(cardId : CardId) : KanbanCard {
+    switch (kanbanCards.get(cardId)) {
+      case (null) { Runtime.trap("Card not found") };
+      case (?card) { card };
+    };
   };
 };

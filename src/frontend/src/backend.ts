@@ -89,7 +89,30 @@ export class ExternalBlob {
         return this;
     }
 }
+export interface UserProfile {
+    appRole: AppUserRole;
+    email: string;
+    currentOrgId?: OrgId;
+    lastName: string;
+    firstName: string;
+}
+export interface PipelineColumn {
+    id: string;
+    orgId: OrgId;
+    name: string;
+    createdAt: bigint;
+    createdBy: Principal;
+    boardId: BoardId;
+    position: bigint;
+}
 export type OrgId = string;
+export interface ColumnUpdate {
+    id: string;
+    name: string;
+    boardId: BoardId;
+    newPosition: bigint;
+}
+export type CardId = string;
 export interface Contact {
     id: string;
     orgId: OrgId;
@@ -101,26 +124,78 @@ export interface Contact {
 export interface _CaffeineStorageRefillInformation {
     proposed_top_up_amount?: bigint;
 }
+export interface CardInput {
+    title: string;
+    orgId: OrgId;
+    dueDate?: bigint;
+    description: string;
+    boardId: BoardId;
+    customFields: Array<CustomField>;
+    columnId: string;
+}
+export type BoardId = string;
 export interface _CaffeineStorageCreateCertificateResult {
     method: string;
     blob_hash: string;
+}
+export interface KanbanBoard {
+    id: BoardId;
+    customFieldDefinitions: Array<CustomFieldDefinition>;
+    orgId: OrgId;
+    name: string;
+    createdAt: bigint;
+    createdBy: Principal;
+}
+export type FieldType = {
+    __kind__: "singleSelect";
+    singleSelect: string;
+} | {
+    __kind__: "date";
+    date: bigint;
+} | {
+    __kind__: "tags";
+    tags: Array<string>;
+} | {
+    __kind__: "text";
+    text: string;
+} | {
+    __kind__: "multiSelect";
+    multiSelect: Array<string>;
+} | {
+    __kind__: "number";
+    number: number;
+};
+export interface CustomField {
+    value: FieldType;
+    name: string;
+}
+export interface CustomFieldDefinition {
+    name: string;
+    options: Array<string>;
+    fieldType: FieldType;
+}
+export interface KanbanCard {
+    id: CardId;
+    title: string;
+    orgId: OrgId;
+    createdAt: bigint;
+    createdBy: Principal;
+    dueDate?: bigint;
+    description: string;
+    boardId: BoardId;
+    customFields: Array<CustomField>;
+    updatedAt: bigint;
+    columnId: string;
+}
+export interface _CaffeineStorageRefillResult {
+    success?: boolean;
+    topped_up_amount?: bigint;
 }
 export interface Organization {
     id: OrgId;
     name: string;
     createdAt: bigint;
     createdBy: Principal;
-}
-export interface UserProfile {
-    appRole: AppUserRole;
-    email: string;
-    currentOrgId?: OrgId;
-    lastName: string;
-    firstName: string;
-}
-export interface _CaffeineStorageRefillResult {
-    success?: boolean;
-    topped_up_amount?: bigint;
 }
 export enum AppUserRole {
     FIRSTY_CONSULTANT = "FIRSTY_CONSULTANT",
@@ -141,24 +216,44 @@ export interface backendInterface {
     _caffeineStorageRefillCashier(refillInformation: _CaffeineStorageRefillInformation | null): Promise<_CaffeineStorageRefillResult>;
     _caffeineStorageUpdateGatewayPrincipals(): Promise<void>;
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
+    addOrUpdateCustomFieldDefinition(orgId: OrgId, boardId: BoardId, definition: CustomFieldDefinition): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    createCard(input: CardInput): Promise<CardId>;
     createContact(contact: Contact): Promise<void>;
+    createKanbanBoard(orgId: OrgId, name: string): Promise<BoardId>;
     createOrganization(name: string, timestamp: bigint): Promise<OrgId>;
+    createPipelineColumn(orgId: OrgId, boardId: BoardId, name: string, position: bigint, timestamp: bigint): Promise<string>;
+    deleteCard(cardId: CardId): Promise<void>;
     deleteContact(id: string): Promise<void>;
+    deleteKanbanBoard(boardId: BoardId): Promise<void>;
     deleteOrganization(orgId: OrgId): Promise<void>;
+    deletePipelineColumn(columnId: string, boardId: BoardId): Promise<void>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
+    getCard(cardId: CardId): Promise<KanbanCard>;
+    getCardsByBoard(orgId: OrgId, boardId: BoardId): Promise<Array<KanbanCard>>;
+    getCardsByColumn(columnId: string, boardId: BoardId): Promise<Array<KanbanCard>>;
     getContact(id: string): Promise<Contact | null>;
+    getKanbanBoard(boardId: BoardId): Promise<KanbanBoard>;
     getOrganization(orgId: OrgId): Promise<Organization | null>;
+    getPipelineColumn(columnId: string, boardId: BoardId): Promise<PipelineColumn | null>;
+    getPipelineColumns(orgId: OrgId, boardId: BoardId): Promise<Array<PipelineColumn>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     listContacts(orgId: OrgId): Promise<Array<Contact>>;
+    listKanbanBoards(orgId: OrgId): Promise<Array<KanbanBoard>>;
     listOrganizations(): Promise<Array<Organization>>;
+    moveCard(cardId: CardId, destinationColumnId: string): Promise<void>;
+    renamePipelineColumn(columnId: string, boardId: BoardId, newName: string): Promise<void>;
+    reorderPipelineColumns(orgId: OrgId, boardId: BoardId, updates: Array<ColumnUpdate>): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    updateCard(cardId: CardId, input: CardInput): Promise<void>;
     updateContact(id: string, name: string, email: string, phone: string): Promise<void>;
+    updateKanbanBoard(boardId: BoardId, name: string): Promise<void>;
     updateOrganization(orgId: OrgId, name: string): Promise<void>;
+    updatePipelineColumn(columnId: string, boardId: BoardId, newName: string): Promise<void>;
 }
-import type { AppUserRole as _AppUserRole, Contact as _Contact, OrgId as _OrgId, Organization as _Organization, UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
+import type { AppUserRole as _AppUserRole, BoardId as _BoardId, CardId as _CardId, CardInput as _CardInput, Contact as _Contact, CustomField as _CustomField, CustomFieldDefinition as _CustomFieldDefinition, FieldType as _FieldType, KanbanBoard as _KanbanBoard, KanbanCard as _KanbanCard, OrgId as _OrgId, Organization as _Organization, PipelineColumn as _PipelineColumn, UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async _caffeineStorageBlobIsLive(arg0: Uint8Array): Promise<boolean> {
@@ -259,17 +354,45 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async assignCallerUserRole(arg0: Principal, arg1: UserRole): Promise<void> {
+    async addOrUpdateCustomFieldDefinition(arg0: OrgId, arg1: BoardId, arg2: CustomFieldDefinition): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.assignCallerUserRole(arg0, to_candid_UserRole_n8(this._uploadFile, this._downloadFile, arg1));
+                const result = await this.actor.addOrUpdateCustomFieldDefinition(arg0, arg1, to_candid_CustomFieldDefinition_n8(this._uploadFile, this._downloadFile, arg2));
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.assignCallerUserRole(arg0, to_candid_UserRole_n8(this._uploadFile, this._downloadFile, arg1));
+            const result = await this.actor.addOrUpdateCustomFieldDefinition(arg0, arg1, to_candid_CustomFieldDefinition_n8(this._uploadFile, this._downloadFile, arg2));
+            return result;
+        }
+    }
+    async assignCallerUserRole(arg0: Principal, arg1: UserRole): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.assignCallerUserRole(arg0, to_candid_UserRole_n12(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.assignCallerUserRole(arg0, to_candid_UserRole_n12(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
+    async createCard(arg0: CardInput): Promise<CardId> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createCard(to_candid_CardInput_n14(this._uploadFile, this._downloadFile, arg0));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createCard(to_candid_CardInput_n14(this._uploadFile, this._downloadFile, arg0));
             return result;
         }
     }
@@ -287,6 +410,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async createKanbanBoard(arg0: OrgId, arg1: string): Promise<BoardId> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createKanbanBoard(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createKanbanBoard(arg0, arg1);
+            return result;
+        }
+    }
     async createOrganization(arg0: string, arg1: bigint): Promise<OrgId> {
         if (this.processError) {
             try {
@@ -298,6 +435,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.createOrganization(arg0, arg1);
+            return result;
+        }
+    }
+    async createPipelineColumn(arg0: OrgId, arg1: BoardId, arg2: string, arg3: bigint, arg4: bigint): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createPipelineColumn(arg0, arg1, arg2, arg3, arg4);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createPipelineColumn(arg0, arg1, arg2, arg3, arg4);
+            return result;
+        }
+    }
+    async deleteCard(arg0: CardId): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteCard(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteCard(arg0);
             return result;
         }
     }
@@ -315,6 +480,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async deleteKanbanBoard(arg0: BoardId): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteKanbanBoard(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteKanbanBoard(arg0);
+            return result;
+        }
+    }
     async deleteOrganization(arg0: OrgId): Promise<void> {
         if (this.processError) {
             try {
@@ -329,74 +508,172 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async deletePipelineColumn(arg0: string, arg1: BoardId): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deletePipelineColumn(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deletePipelineColumn(arg0, arg1);
+            return result;
+        }
+    }
     async getCallerUserProfile(): Promise<UserProfile | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getCallerUserProfile();
-                return from_candid_opt_n10(this._uploadFile, this._downloadFile, result);
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.getCallerUserProfile();
-            return from_candid_opt_n10(this._uploadFile, this._downloadFile, result);
-        }
-    }
-    async getCallerUserRole(): Promise<UserRole> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.getCallerUserRole();
-                return from_candid_UserRole_n16(this._uploadFile, this._downloadFile, result);
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.getCallerUserRole();
-            return from_candid_UserRole_n16(this._uploadFile, this._downloadFile, result);
-        }
-    }
-    async getContact(arg0: string): Promise<Contact | null> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.getContact(arg0);
-                return from_candid_opt_n18(this._uploadFile, this._downloadFile, result);
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.getContact(arg0);
-            return from_candid_opt_n18(this._uploadFile, this._downloadFile, result);
-        }
-    }
-    async getOrganization(arg0: OrgId): Promise<Organization | null> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.getOrganization(arg0);
                 return from_candid_opt_n19(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.getOrganization(arg0);
+            const result = await this.actor.getCallerUserProfile();
             return from_candid_opt_n19(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getCallerUserRole(): Promise<UserRole> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCallerUserRole();
+                return from_candid_UserRole_n25(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCallerUserRole();
+            return from_candid_UserRole_n25(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getCard(arg0: CardId): Promise<KanbanCard> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCard(arg0);
+                return from_candid_KanbanCard_n27(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCard(arg0);
+            return from_candid_KanbanCard_n27(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getCardsByBoard(arg0: OrgId, arg1: BoardId): Promise<Array<KanbanCard>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCardsByBoard(arg0, arg1);
+                return from_candid_vec_n35(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCardsByBoard(arg0, arg1);
+            return from_candid_vec_n35(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getCardsByColumn(arg0: string, arg1: BoardId): Promise<Array<KanbanCard>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCardsByColumn(arg0, arg1);
+                return from_candid_vec_n35(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCardsByColumn(arg0, arg1);
+            return from_candid_vec_n35(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getContact(arg0: string): Promise<Contact | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getContact(arg0);
+                return from_candid_opt_n36(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getContact(arg0);
+            return from_candid_opt_n36(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getKanbanBoard(arg0: BoardId): Promise<KanbanBoard> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getKanbanBoard(arg0);
+                return from_candid_KanbanBoard_n37(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getKanbanBoard(arg0);
+            return from_candid_KanbanBoard_n37(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getOrganization(arg0: OrgId): Promise<Organization | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getOrganization(arg0);
+                return from_candid_opt_n42(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getOrganization(arg0);
+            return from_candid_opt_n42(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getPipelineColumn(arg0: string, arg1: BoardId): Promise<PipelineColumn | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getPipelineColumn(arg0, arg1);
+                return from_candid_opt_n43(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getPipelineColumn(arg0, arg1);
+            return from_candid_opt_n43(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getPipelineColumns(arg0: OrgId, arg1: BoardId): Promise<Array<PipelineColumn>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getPipelineColumns(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getPipelineColumns(arg0, arg1);
+            return result;
         }
     }
     async getUserProfile(arg0: Principal): Promise<UserProfile | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getUserProfile(arg0);
-                return from_candid_opt_n10(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n19(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getUserProfile(arg0);
-            return from_candid_opt_n10(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n19(this._uploadFile, this._downloadFile, result);
         }
     }
     async isCallerAdmin(): Promise<boolean> {
@@ -427,6 +704,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async listKanbanBoards(arg0: OrgId): Promise<Array<KanbanBoard>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.listKanbanBoards(arg0);
+                return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.listKanbanBoards(arg0);
+            return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
+        }
+    }
     async listOrganizations(): Promise<Array<Organization>> {
         if (this.processError) {
             try {
@@ -441,17 +732,73 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async saveCallerUserProfile(arg0: UserProfile): Promise<void> {
+    async moveCard(arg0: CardId, arg1: string): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.saveCallerUserProfile(to_candid_UserProfile_n20(this._uploadFile, this._downloadFile, arg0));
+                const result = await this.actor.moveCard(arg0, arg1);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.saveCallerUserProfile(to_candid_UserProfile_n20(this._uploadFile, this._downloadFile, arg0));
+            const result = await this.actor.moveCard(arg0, arg1);
+            return result;
+        }
+    }
+    async renamePipelineColumn(arg0: string, arg1: BoardId, arg2: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.renamePipelineColumn(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.renamePipelineColumn(arg0, arg1, arg2);
+            return result;
+        }
+    }
+    async reorderPipelineColumns(arg0: OrgId, arg1: BoardId, arg2: Array<ColumnUpdate>): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.reorderPipelineColumns(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.reorderPipelineColumns(arg0, arg1, arg2);
+            return result;
+        }
+    }
+    async saveCallerUserProfile(arg0: UserProfile): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.saveCallerUserProfile(to_candid_UserProfile_n45(this._uploadFile, this._downloadFile, arg0));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.saveCallerUserProfile(to_candid_UserProfile_n45(this._uploadFile, this._downloadFile, arg0));
+            return result;
+        }
+    }
+    async updateCard(arg0: CardId, arg1: CardInput): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateCard(arg0, to_candid_CardInput_n14(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateCard(arg0, to_candid_CardInput_n14(this._uploadFile, this._downloadFile, arg1));
             return result;
         }
     }
@@ -469,6 +816,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async updateKanbanBoard(arg0: BoardId, arg1: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateKanbanBoard(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateKanbanBoard(arg0, arg1);
+            return result;
+        }
+    }
     async updateOrganization(arg0: OrgId, arg1: string): Promise<void> {
         if (this.processError) {
             try {
@@ -483,29 +844,64 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async updatePipelineColumn(arg0: string, arg1: BoardId, arg2: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updatePipelineColumn(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updatePipelineColumn(arg0, arg1, arg2);
+            return result;
+        }
+    }
 }
-function from_candid_AppUserRole_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _AppUserRole): AppUserRole {
-    return from_candid_variant_n14(_uploadFile, _downloadFile, value);
+function from_candid_AppUserRole_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _AppUserRole): AppUserRole {
+    return from_candid_variant_n23(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserProfile_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserProfile): UserProfile {
-    return from_candid_record_n12(_uploadFile, _downloadFile, value);
+function from_candid_CustomFieldDefinition_n40(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CustomFieldDefinition): CustomFieldDefinition {
+    return from_candid_record_n41(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserRole_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
-    return from_candid_variant_n17(_uploadFile, _downloadFile, value);
+function from_candid_CustomField_n31(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CustomField): CustomField {
+    return from_candid_record_n32(_uploadFile, _downloadFile, value);
+}
+function from_candid_FieldType_n33(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _FieldType): FieldType {
+    return from_candid_variant_n34(_uploadFile, _downloadFile, value);
+}
+function from_candid_KanbanBoard_n37(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _KanbanBoard): KanbanBoard {
+    return from_candid_record_n38(_uploadFile, _downloadFile, value);
+}
+function from_candid_KanbanCard_n27(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _KanbanCard): KanbanCard {
+    return from_candid_record_n28(_uploadFile, _downloadFile, value);
+}
+function from_candid_UserProfile_n20(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserProfile): UserProfile {
+    return from_candid_record_n21(_uploadFile, _downloadFile, value);
+}
+function from_candid_UserRole_n25(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
+    return from_candid_variant_n26(_uploadFile, _downloadFile, value);
 }
 function from_candid__CaffeineStorageRefillResult_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: __CaffeineStorageRefillResult): _CaffeineStorageRefillResult {
     return from_candid_record_n5(_uploadFile, _downloadFile, value);
 }
-function from_candid_opt_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
-    return value.length === 0 ? null : from_candid_UserProfile_n11(_uploadFile, _downloadFile, value[0]);
+function from_candid_opt_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
+    return value.length === 0 ? null : from_candid_UserProfile_n20(_uploadFile, _downloadFile, value[0]);
 }
-function from_candid_opt_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_OrgId]): OrgId | null {
+function from_candid_opt_n24(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_OrgId]): OrgId | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Contact]): Contact | null {
+function from_candid_opt_n29(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [bigint]): bigint | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Organization]): Organization | null {
+function from_candid_opt_n36(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Contact]): Contact | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n42(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Organization]): Organization | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n43(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_PipelineColumn]): PipelineColumn | null {
     return value.length === 0 ? null : value[0];
 }
 function from_candid_opt_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [boolean]): boolean | null {
@@ -514,7 +910,7 @@ function from_candid_opt_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Ar
 function from_candid_opt_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [bigint]): bigint | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_record_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     appRole: _AppUserRole;
     email: string;
     currentOrgId: [] | [_OrgId];
@@ -528,11 +924,101 @@ function from_candid_record_n12(_uploadFile: (file: ExternalBlob) => Promise<Uin
     firstName: string;
 } {
     return {
-        appRole: from_candid_AppUserRole_n13(_uploadFile, _downloadFile, value.appRole),
+        appRole: from_candid_AppUserRole_n22(_uploadFile, _downloadFile, value.appRole),
         email: value.email,
-        currentOrgId: record_opt_to_undefined(from_candid_opt_n15(_uploadFile, _downloadFile, value.currentOrgId)),
+        currentOrgId: record_opt_to_undefined(from_candid_opt_n24(_uploadFile, _downloadFile, value.currentOrgId)),
         lastName: value.lastName,
         firstName: value.firstName
+    };
+}
+function from_candid_record_n28(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: _CardId;
+    title: string;
+    orgId: _OrgId;
+    createdAt: bigint;
+    createdBy: Principal;
+    dueDate: [] | [bigint];
+    description: string;
+    boardId: _BoardId;
+    customFields: Array<_CustomField>;
+    updatedAt: bigint;
+    columnId: string;
+}): {
+    id: CardId;
+    title: string;
+    orgId: OrgId;
+    createdAt: bigint;
+    createdBy: Principal;
+    dueDate?: bigint;
+    description: string;
+    boardId: BoardId;
+    customFields: Array<CustomField>;
+    updatedAt: bigint;
+    columnId: string;
+} {
+    return {
+        id: value.id,
+        title: value.title,
+        orgId: value.orgId,
+        createdAt: value.createdAt,
+        createdBy: value.createdBy,
+        dueDate: record_opt_to_undefined(from_candid_opt_n29(_uploadFile, _downloadFile, value.dueDate)),
+        description: value.description,
+        boardId: value.boardId,
+        customFields: from_candid_vec_n30(_uploadFile, _downloadFile, value.customFields),
+        updatedAt: value.updatedAt,
+        columnId: value.columnId
+    };
+}
+function from_candid_record_n32(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    value: _FieldType;
+    name: string;
+}): {
+    value: FieldType;
+    name: string;
+} {
+    return {
+        value: from_candid_FieldType_n33(_uploadFile, _downloadFile, value.value),
+        name: value.name
+    };
+}
+function from_candid_record_n38(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: _BoardId;
+    customFieldDefinitions: Array<_CustomFieldDefinition>;
+    orgId: _OrgId;
+    name: string;
+    createdAt: bigint;
+    createdBy: Principal;
+}): {
+    id: BoardId;
+    customFieldDefinitions: Array<CustomFieldDefinition>;
+    orgId: OrgId;
+    name: string;
+    createdAt: bigint;
+    createdBy: Principal;
+} {
+    return {
+        id: value.id,
+        customFieldDefinitions: from_candid_vec_n39(_uploadFile, _downloadFile, value.customFieldDefinitions),
+        orgId: value.orgId,
+        name: value.name,
+        createdAt: value.createdAt,
+        createdBy: value.createdBy
+    };
+}
+function from_candid_record_n41(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    name: string;
+    options: Array<string>;
+    fieldType: _FieldType;
+}): {
+    name: string;
+    options: Array<string>;
+    fieldType: FieldType;
+} {
+    return {
+        name: value.name,
+        options: value.options,
+        fieldType: from_candid_FieldType_n33(_uploadFile, _downloadFile, value.fieldType)
     };
 }
 function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
@@ -547,7 +1033,7 @@ function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint
         topped_up_amount: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.topped_up_amount))
     };
 }
-function from_candid_variant_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     FIRSTY_CONSULTANT: null;
 } | {
     FIRSTY_ADMIN: null;
@@ -558,7 +1044,7 @@ function from_candid_variant_n14(_uploadFile: (file: ExternalBlob) => Promise<Ui
 }): AppUserRole {
     return "FIRSTY_CONSULTANT" in value ? AppUserRole.FIRSTY_CONSULTANT : "FIRSTY_ADMIN" in value ? AppUserRole.FIRSTY_ADMIN : "OWNER_ADMIN" in value ? AppUserRole.OWNER_ADMIN : "MEMBER" in value ? AppUserRole.MEMBER : value;
 }
-function from_candid_variant_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n26(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     admin: null;
 } | {
     user: null;
@@ -567,14 +1053,89 @@ function from_candid_variant_n17(_uploadFile: (file: ExternalBlob) => Promise<Ui
 }): UserRole {
     return "admin" in value ? UserRole.admin : "user" in value ? UserRole.user : "guest" in value ? UserRole.guest : value;
 }
-function to_candid_AppUserRole_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: AppUserRole): _AppUserRole {
-    return to_candid_variant_n23(_uploadFile, _downloadFile, value);
+function from_candid_variant_n34(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    singleSelect: string;
+} | {
+    date: bigint;
+} | {
+    tags: Array<string>;
+} | {
+    text: string;
+} | {
+    multiSelect: Array<string>;
+} | {
+    number: number;
+}): {
+    __kind__: "singleSelect";
+    singleSelect: string;
+} | {
+    __kind__: "date";
+    date: bigint;
+} | {
+    __kind__: "tags";
+    tags: Array<string>;
+} | {
+    __kind__: "text";
+    text: string;
+} | {
+    __kind__: "multiSelect";
+    multiSelect: Array<string>;
+} | {
+    __kind__: "number";
+    number: number;
+} {
+    return "singleSelect" in value ? {
+        __kind__: "singleSelect",
+        singleSelect: value.singleSelect
+    } : "date" in value ? {
+        __kind__: "date",
+        date: value.date
+    } : "tags" in value ? {
+        __kind__: "tags",
+        tags: value.tags
+    } : "text" in value ? {
+        __kind__: "text",
+        text: value.text
+    } : "multiSelect" in value ? {
+        __kind__: "multiSelect",
+        multiSelect: value.multiSelect
+    } : "number" in value ? {
+        __kind__: "number",
+        number: value.number
+    } : value;
 }
-function to_candid_UserProfile_n20(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserProfile): _UserProfile {
-    return to_candid_record_n21(_uploadFile, _downloadFile, value);
+function from_candid_vec_n30(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_CustomField>): Array<CustomField> {
+    return value.map((x)=>from_candid_CustomField_n31(_uploadFile, _downloadFile, x));
 }
-function to_candid_UserRole_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): _UserRole {
-    return to_candid_variant_n9(_uploadFile, _downloadFile, value);
+function from_candid_vec_n35(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_KanbanCard>): Array<KanbanCard> {
+    return value.map((x)=>from_candid_KanbanCard_n27(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n39(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_CustomFieldDefinition>): Array<CustomFieldDefinition> {
+    return value.map((x)=>from_candid_CustomFieldDefinition_n40(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n44(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_KanbanBoard>): Array<KanbanBoard> {
+    return value.map((x)=>from_candid_KanbanBoard_n37(_uploadFile, _downloadFile, x));
+}
+function to_candid_AppUserRole_n47(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: AppUserRole): _AppUserRole {
+    return to_candid_variant_n48(_uploadFile, _downloadFile, value);
+}
+function to_candid_CardInput_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: CardInput): _CardInput {
+    return to_candid_record_n15(_uploadFile, _downloadFile, value);
+}
+function to_candid_CustomFieldDefinition_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: CustomFieldDefinition): _CustomFieldDefinition {
+    return to_candid_record_n9(_uploadFile, _downloadFile, value);
+}
+function to_candid_CustomField_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: CustomField): _CustomField {
+    return to_candid_record_n18(_uploadFile, _downloadFile, value);
+}
+function to_candid_FieldType_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: FieldType): _FieldType {
+    return to_candid_variant_n11(_uploadFile, _downloadFile, value);
+}
+function to_candid_UserProfile_n45(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserProfile): _UserProfile {
+    return to_candid_record_n46(_uploadFile, _downloadFile, value);
+}
+function to_candid_UserRole_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): _UserRole {
+    return to_candid_variant_n13(_uploadFile, _downloadFile, value);
 }
 function to_candid__CaffeineStorageRefillInformation_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CaffeineStorageRefillInformation): __CaffeineStorageRefillInformation {
     return to_candid_record_n3(_uploadFile, _downloadFile, value);
@@ -582,7 +1143,55 @@ function to_candid__CaffeineStorageRefillInformation_n2(_uploadFile: (file: Exte
 function to_candid_opt_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CaffeineStorageRefillInformation | null): [] | [__CaffeineStorageRefillInformation] {
     return value === null ? candid_none() : candid_some(to_candid__CaffeineStorageRefillInformation_n2(_uploadFile, _downloadFile, value));
 }
-function to_candid_record_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function to_candid_record_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    title: string;
+    orgId: OrgId;
+    dueDate?: bigint;
+    description: string;
+    boardId: BoardId;
+    customFields: Array<CustomField>;
+    columnId: string;
+}): {
+    title: string;
+    orgId: _OrgId;
+    dueDate: [] | [bigint];
+    description: string;
+    boardId: _BoardId;
+    customFields: Array<_CustomField>;
+    columnId: string;
+} {
+    return {
+        title: value.title,
+        orgId: value.orgId,
+        dueDate: value.dueDate ? candid_some(value.dueDate) : candid_none(),
+        description: value.description,
+        boardId: value.boardId,
+        customFields: to_candid_vec_n16(_uploadFile, _downloadFile, value.customFields),
+        columnId: value.columnId
+    };
+}
+function to_candid_record_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    value: FieldType;
+    name: string;
+}): {
+    value: _FieldType;
+    name: string;
+} {
+    return {
+        value: to_candid_FieldType_n10(_uploadFile, _downloadFile, value.value),
+        name: value.name
+    };
+}
+function to_candid_record_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    proposed_top_up_amount?: bigint;
+}): {
+    proposed_top_up_amount: [] | [bigint];
+} {
+    return {
+        proposed_top_up_amount: value.proposed_top_up_amount ? candid_some(value.proposed_top_up_amount) : candid_none()
+    };
+}
+function to_candid_record_n46(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     appRole: AppUserRole;
     email: string;
     currentOrgId?: OrgId;
@@ -596,23 +1205,89 @@ function to_candid_record_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8
     firstName: string;
 } {
     return {
-        appRole: to_candid_AppUserRole_n22(_uploadFile, _downloadFile, value.appRole),
+        appRole: to_candid_AppUserRole_n47(_uploadFile, _downloadFile, value.appRole),
         email: value.email,
         currentOrgId: value.currentOrgId ? candid_some(value.currentOrgId) : candid_none(),
         lastName: value.lastName,
         firstName: value.firstName
     };
 }
-function to_candid_record_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
-    proposed_top_up_amount?: bigint;
+function to_candid_record_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    name: string;
+    options: Array<string>;
+    fieldType: FieldType;
 }): {
-    proposed_top_up_amount: [] | [bigint];
+    name: string;
+    options: Array<string>;
+    fieldType: _FieldType;
 } {
     return {
-        proposed_top_up_amount: value.proposed_top_up_amount ? candid_some(value.proposed_top_up_amount) : candid_none()
+        name: value.name,
+        options: value.options,
+        fieldType: to_candid_FieldType_n10(_uploadFile, _downloadFile, value.fieldType)
     };
 }
-function to_candid_variant_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: AppUserRole): {
+function to_candid_variant_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    __kind__: "singleSelect";
+    singleSelect: string;
+} | {
+    __kind__: "date";
+    date: bigint;
+} | {
+    __kind__: "tags";
+    tags: Array<string>;
+} | {
+    __kind__: "text";
+    text: string;
+} | {
+    __kind__: "multiSelect";
+    multiSelect: Array<string>;
+} | {
+    __kind__: "number";
+    number: number;
+}): {
+    singleSelect: string;
+} | {
+    date: bigint;
+} | {
+    tags: Array<string>;
+} | {
+    text: string;
+} | {
+    multiSelect: Array<string>;
+} | {
+    number: number;
+} {
+    return value.__kind__ === "singleSelect" ? {
+        singleSelect: value.singleSelect
+    } : value.__kind__ === "date" ? {
+        date: value.date
+    } : value.__kind__ === "tags" ? {
+        tags: value.tags
+    } : value.__kind__ === "text" ? {
+        text: value.text
+    } : value.__kind__ === "multiSelect" ? {
+        multiSelect: value.multiSelect
+    } : value.__kind__ === "number" ? {
+        number: value.number
+    } : value;
+}
+function to_candid_variant_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): {
+    admin: null;
+} | {
+    user: null;
+} | {
+    guest: null;
+} {
+    return value == UserRole.admin ? {
+        admin: null
+    } : value == UserRole.user ? {
+        user: null
+    } : value == UserRole.guest ? {
+        guest: null
+    } : value;
+}
+function to_candid_variant_n48(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: AppUserRole): {
     FIRSTY_CONSULTANT: null;
 } | {
     FIRSTY_ADMIN: null;
@@ -631,20 +1306,8 @@ function to_candid_variant_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint
         MEMBER: null
     } : value;
 }
-function to_candid_variant_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): {
-    admin: null;
-} | {
-    user: null;
-} | {
-    guest: null;
-} {
-    return value == UserRole.admin ? {
-        admin: null
-    } : value == UserRole.user ? {
-        user: null
-    } : value == UserRole.guest ? {
-        guest: null
-    } : value;
+function to_candid_vec_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<CustomField>): Array<_CustomField> {
+    return value.map((x)=>to_candid_CustomField_n17(_uploadFile, _downloadFile, x));
 }
 export interface CreateActorOptions {
     agent?: Agent;

@@ -1,5 +1,5 @@
 import { BackendClient } from './api/backendClient';
-import type { backendInterface } from '../backend';
+import type { backendInterface, CustomFieldDefinition } from '../backend';
 import type {
   Contact,
   Deal,
@@ -13,10 +13,21 @@ import type {
   Meeting,
   Deliverable,
 } from '../types/model';
+import type { PipelineStage, PipelineStageReorderUpdate } from '../types/pipelineStages';
+import type { KanbanCard, CardInput } from '../types/kanbanCards';
+import type { KanbanBoardWithDefinitions } from '../hooks/useKanbanBoard';
 
 /**
  * Cliente unificado que roteia chamadas para o backend.
  */
+
+export interface KanbanBoard {
+  id: string;
+  name: string;
+  orgId: string;
+  createdBy: string;
+  createdAt: Date;
+}
 
 export interface DataClient {
   // Organizações
@@ -108,6 +119,29 @@ export interface DataClient {
   inviteTeamMember: (orgId: string, invitation: any) => Promise<void>;
   listOrgMembers: (orgId: string) => Promise<any[]>;
   listTeamInvitations: (orgId: string) => Promise<any[]>;
+  
+  // Kanban Boards
+  listKanbanBoards: (orgId: string) => Promise<KanbanBoard[]>;
+  createKanbanBoard: (orgId: string, name: string) => Promise<string>;
+  renameKanbanBoard: (boardId: string, name: string) => Promise<void>;
+  getKanbanBoard: (boardId: string) => Promise<KanbanBoardWithDefinitions>;
+  addOrUpdateCustomFieldDefinition: (orgId: string, boardId: string, definition: CustomFieldDefinition) => Promise<void>;
+  
+  // Pipeline Stages (board-scoped)
+  listPipelineStages: (orgId: string, boardId: string) => Promise<PipelineStage[]>;
+  createPipelineStage: (orgId: string, boardId: string, name: string) => Promise<string>;
+  renamePipelineStage: (columnId: string, boardId: string, newName: string) => Promise<void>;
+  deletePipelineStage: (columnId: string, boardId: string) => Promise<void>;
+  reorderPipelineStages: (orgId: string, boardId: string, updates: PipelineStageReorderUpdate[]) => Promise<void>;
+  
+  // Kanban Cards (board-scoped)
+  listCardsByBoard: (orgId: string, boardId: string) => Promise<KanbanCard[]>;
+  listCardsByColumn: (columnId: string, boardId: string) => Promise<KanbanCard[]>;
+  getCard: (cardId: string) => Promise<KanbanCard>;
+  createCard: (input: CardInput) => Promise<string>;
+  updateCard: (cardId: string, input: CardInput) => Promise<void>;
+  moveCard: (cardId: string, destinationColumnId: string) => Promise<void>;
+  deleteCard: (cardId: string) => Promise<void>;
 }
 
 export function createBackendClient(actor: backendInterface): DataClient {

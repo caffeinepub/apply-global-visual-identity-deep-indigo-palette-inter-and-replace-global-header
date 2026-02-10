@@ -14,6 +14,23 @@ export type AppUserRole = { 'FIRSTY_CONSULTANT' : null } |
   { 'FIRSTY_ADMIN' : null } |
   { 'OWNER_ADMIN' : null } |
   { 'MEMBER' : null };
+export type BoardId = string;
+export type CardId = string;
+export interface CardInput {
+  'title' : string,
+  'orgId' : OrgId,
+  'dueDate' : [] | [bigint],
+  'description' : string,
+  'boardId' : BoardId,
+  'customFields' : Array<CustomField>,
+  'columnId' : string,
+}
+export interface ColumnUpdate {
+  'id' : string,
+  'name' : string,
+  'boardId' : BoardId,
+  'newPosition' : bigint,
+}
 export interface Contact {
   'id' : string,
   'orgId' : OrgId,
@@ -22,12 +39,54 @@ export interface Contact {
   'email' : string,
   'phone' : string,
 }
+export interface CustomField { 'value' : FieldType, 'name' : string }
+export interface CustomFieldDefinition {
+  'name' : string,
+  'options' : Array<string>,
+  'fieldType' : FieldType,
+}
+export type FieldType = { 'singleSelect' : string } |
+  { 'date' : bigint } |
+  { 'tags' : Array<string> } |
+  { 'text' : string } |
+  { 'multiSelect' : Array<string> } |
+  { 'number' : number };
+export interface KanbanBoard {
+  'id' : BoardId,
+  'customFieldDefinitions' : Array<CustomFieldDefinition>,
+  'orgId' : OrgId,
+  'name' : string,
+  'createdAt' : bigint,
+  'createdBy' : Principal,
+}
+export interface KanbanCard {
+  'id' : CardId,
+  'title' : string,
+  'orgId' : OrgId,
+  'createdAt' : bigint,
+  'createdBy' : Principal,
+  'dueDate' : [] | [bigint],
+  'description' : string,
+  'boardId' : BoardId,
+  'customFields' : Array<CustomField>,
+  'updatedAt' : bigint,
+  'columnId' : string,
+}
 export type OrgId = string;
 export interface Organization {
   'id' : OrgId,
   'name' : string,
   'createdAt' : bigint,
   'createdBy' : Principal,
+}
+export interface PipelineColumn {
+  'id' : string,
+  'orgId' : OrgId,
+  'name' : string,
+  'createdAt' : bigint,
+  'createdBy' : Principal,
+  'boardId' : BoardId,
+  'position' : bigint,
 }
 export interface UserProfile {
   'appRole' : AppUserRole,
@@ -67,22 +126,51 @@ export interface _SERVICE {
   >,
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'addOrUpdateCustomFieldDefinition' : ActorMethod<
+    [OrgId, BoardId, CustomFieldDefinition],
+    undefined
+  >,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'createCard' : ActorMethod<[CardInput], CardId>,
   'createContact' : ActorMethod<[Contact], undefined>,
+  'createKanbanBoard' : ActorMethod<[OrgId, string], BoardId>,
   'createOrganization' : ActorMethod<[string, bigint], OrgId>,
+  'createPipelineColumn' : ActorMethod<
+    [OrgId, BoardId, string, bigint, bigint],
+    string
+  >,
+  'deleteCard' : ActorMethod<[CardId], undefined>,
   'deleteContact' : ActorMethod<[string], undefined>,
+  'deleteKanbanBoard' : ActorMethod<[BoardId], undefined>,
   'deleteOrganization' : ActorMethod<[OrgId], undefined>,
+  'deletePipelineColumn' : ActorMethod<[string, BoardId], undefined>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getCard' : ActorMethod<[CardId], KanbanCard>,
+  'getCardsByBoard' : ActorMethod<[OrgId, BoardId], Array<KanbanCard>>,
+  'getCardsByColumn' : ActorMethod<[string, BoardId], Array<KanbanCard>>,
   'getContact' : ActorMethod<[string], [] | [Contact]>,
+  'getKanbanBoard' : ActorMethod<[BoardId], KanbanBoard>,
   'getOrganization' : ActorMethod<[OrgId], [] | [Organization]>,
+  'getPipelineColumn' : ActorMethod<[string, BoardId], [] | [PipelineColumn]>,
+  'getPipelineColumns' : ActorMethod<[OrgId, BoardId], Array<PipelineColumn>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'listContacts' : ActorMethod<[OrgId], Array<Contact>>,
+  'listKanbanBoards' : ActorMethod<[OrgId], Array<KanbanBoard>>,
   'listOrganizations' : ActorMethod<[], Array<Organization>>,
+  'moveCard' : ActorMethod<[CardId, string], undefined>,
+  'renamePipelineColumn' : ActorMethod<[string, BoardId, string], undefined>,
+  'reorderPipelineColumns' : ActorMethod<
+    [OrgId, BoardId, Array<ColumnUpdate>],
+    undefined
+  >,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'updateCard' : ActorMethod<[CardId, CardInput], undefined>,
   'updateContact' : ActorMethod<[string, string, string, string], undefined>,
+  'updateKanbanBoard' : ActorMethod<[BoardId, string], undefined>,
   'updateOrganization' : ActorMethod<[OrgId, string], undefined>,
+  'updatePipelineColumn' : ActorMethod<[string, BoardId, string], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

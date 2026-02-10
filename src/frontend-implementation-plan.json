@@ -1,168 +1,22 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Restore member and CRM contact flows by hardening frontend client readiness, onboarding, and team management UI",
+  "title": "Pipeline page header title rename to \"Pipeline\"",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Prevent frontend from getting stuck when backend actor initialization fails and remove dependence on a missing URL secret for normal Internet Identity usage by improving readiness/error UI and safe URL param handling.",
+      "summary": "Change only the Pipeline page header <h1> text to display exactly \"Pipeline\" while leaving all other labels, description text, and browser tab title unchanged.",
       "acceptanceCriteria": [
-        "A user can log in with Internet Identity and the backend actor finishes initialization without requiring any URL secret parameter.",
-        "If the secret token is absent/empty/invalid, the app still works for normal user flows (it must not permanently fail actor initialization).",
-        "If actor initialization fails for any reason, the UI shows a clear error state and provides a retry action instead of throwing \"Backend client not ready\" on actions."
+        "When visiting the internal Pipeline page, the header <h1> displays exactly: \"Pipeline\".",
+        "The Pipeline page description text remains unchanged.",
+        "No other UI labels (e.g., sidebar/nav items) are changed as part of this update.",
+        "No changes are made to the browser tab title as part of this update."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/utils/urlParams.ts",
+          "path": "frontend/src/pages/internal/PipelinePage.tsx",
           "operation": "modify",
-          "description": "Adjust URL parameter reading/persistence so missing/empty secret parameters do not poison the app state; ensure safe defaults and provide a helper to clear any persisted secret-like params used during actor setup."
-        },
-        {
-          "path": "frontend/src/hooks/useStage1Client.ts",
-          "operation": "modify",
-          "description": "Add explicit client initialization status (ready/loading/error) and a retry action that can recover from actor init failures (e.g., by clearing persisted URL param state and triggering a re-init flow) instead of exposing only a throwing proxy."
-        },
-        {
-          "path": "frontend/src/components/states/BackendClientInitState.tsx",
-          "operation": "create",
-          "description": "Create a reusable UI state component for backend-client initialization (loading, error with retry) to avoid raw thrown errors. Compose using existing UI primitives from frontend/src/components/ui/* (do not modify them)."
-        },
-        {
-          "path": "frontend/src/app/router/ProtectedRoute.tsx",
-          "operation": "modify",
-          "description": "Wire backend-client init UI into protected routing so authenticated users see a clear initialization error with retry when the backend client is not ready, rather than allowing actions to throw. Ensure any newly added/changed user-facing text is in English."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Make CRM contact create/update/delete reliable by gating mutations on backend-client readiness and aligning contact payloads to backend expectations (caller-derived fields must not be supplied from the UI).",
-      "acceptanceCriteria": [
-        "Creating a contact succeeds consistently after login (no \"Backend client not ready - actor is still loading\").",
-        "Backend enforces org edit permissions based on caller membership, but does not require the frontend to supply caller-derived fields incorrectly.",
-        "Contact list refreshes after create/update/delete and reflects the change without requiring a manual page reload.",
-        "The \"New Contact\" primary action is disabled (or shows a loading state) until the backend client is ready and an organization is selected."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/backend.d.ts",
-          "operation": "modify",
-          "description": "Update the typed backend interface for contacts so the create/update/delete calls match the intended backend capabilities (e.g., create no longer requires frontend-supplied caller-derived fields like createdBy)."
-        },
-        {
-          "path": "frontend/src/data/api/backendClient.ts",
-          "operation": "modify",
-          "description": "Align BackendClient contact methods with the updated backend typings: stop deriving/sending caller-derived fields from frontend, and ensure create/update/delete methods use the expected backend capability signatures."
-        },
-        {
-          "path": "frontend/src/pages/internal/ContactsPage.tsx",
-          "operation": "modify",
-          "description": "Gate all contact mutations on backend client readiness and org selection; disable/show loading state for the primary \"New Contact\" action until ready; ensure list invalidation/refresh remains in place; replace/adjust any newly added or modified user-facing text to English (including toasts and validation messages)."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Add frontend support for the owner-managed member invitation lifecycle (invite, list pending, revoke, accept) and distinct membership vs CRM contacts by extending client typings and exposing UI entry points for invite acceptance.",
-      "acceptanceCriteria": [
-        "Backend exposes operations to: create a member invitation (by email or identifier), list pending invitations, revoke an invitation, and accept an invitation (by the logged-in principal).",
-        "Backend exposes operations to list organization members (principals + profile info where available) for org admins/creators.",
-        "A newly invited user who logs in can accept an invitation and is then added to org membership; the user can access org data according to their role.",
-        "Member management operations are permissioned so only the organization creator/admin (and Firsty staff if applicable) can invite/revoke/change roles."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/backend.d.ts",
-          "operation": "modify",
-          "description": "Extend backend typings with member/invitation types and functions needed by the UI (invite member, list members, list invitations, revoke invitation, accept invitation), keeping signatures aligned with the planned backend capabilities."
-        },
-        {
-          "path": "frontend/src/data/client.ts",
-          "operation": "modify",
-          "description": "Extend the DataClient interface with strongly typed member/invitation operations (including accept/revoke) so UI components can rely on consistent methods."
-        },
-        {
-          "path": "frontend/src/data/api/backendClient.ts",
-          "operation": "modify",
-          "description": "Implement the new DataClient member/invitation methods by calling the corresponding backend actor functions and mapping results into UI-friendly shapes."
-        },
-        {
-          "path": "frontend/src/pages/auth/AcceptInvitationPage.tsx",
-          "operation": "create",
-          "description": "Create an authenticated onboarding page that lets a logged-in invited user view pending invitations and accept one to become an active organization member. Ensure all user-facing text is in English."
-        },
-        {
-          "path": "frontend/src/app/router/routes.tsx",
-          "operation": "modify",
-          "description": "Register the Accept Invitation page route and ensure it is reachable from the post-auth flow (route wiring completeness)."
-        },
-        {
-          "path": "frontend/src/app/router/PostAuthLanding.tsx",
-          "operation": "modify",
-          "description": "Update post-auth routing logic to send users without membership/accepted invitation to the appropriate onboarding step (e.g., accept invitation) rather than falling into unusable states. Ensure any newly added or modified user-facing text is in English."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Replace the static Team/Settings tab with a functional Team management UI that is wired to backend member and invitation capabilities (invite, view members, view pending, revoke/remove, role update if supported).",
-      "acceptanceCriteria": [
-        "The Team tab shows real organization members loaded from the backend, not hard-coded demo entries.",
-        "The \"Invite Member\" action opens a form that creates an invitation via the backend and shows success/error toasts.",
-        "Pending invitations are visible and can be revoked.",
-        "Removing a member (or revoking access) updates the backend and refreshes the list."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/internal/settings/TeamManagementTab.tsx",
-          "operation": "create",
-          "description": "Create a Team management tab component: list members, list pending invitations, invite form, revoke/remove actions, and react-query invalidation. Compose with shadcn/ui components under frontend/src/components/ui/* (do not modify them). Ensure text is English."
-        },
-        {
-          "path": "frontend/src/pages/internal/SettingsPage.tsx",
-          "operation": "modify",
-          "description": "Replace the current static Team tab content with the new TeamManagementTab and ensure it uses the current organization context and backend client readiness gating. Ensure any modified/added user-facing text is in English."
-        },
-        {
-          "path": "frontend/src/org/OrgProvider.tsx",
-          "operation": "modify",
-          "description": "Strengthen org context behavior to support Team UI requirements (e.g., ensure currentOrgId is reliably available after profile/org hydration; avoid triggering team queries until both org and backend client are ready)."
-        }
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "summary": "Implement robust user profile bootstrapping and membership-aware onboarding so users without a profile or without accepted membership see the correct next step and the app reloads auth/org state after completion.",
-      "acceptanceCriteria": [
-        "If the backend has no profile for the caller, the app does not silently fall back to an unusable state; it shows a clear next-step screen (e.g., create profile / accept invite) appropriate to the user’s membership state.",
-        "After saving a profile, the authenticated user state updates and protected routes work without manual refresh.",
-        "Users without an accepted invitation/membership cannot select or access an organization’s protected pages (they see an access-denied or onboarding state)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/auth/AuthProvider.tsx",
-          "operation": "modify",
-          "description": "Remove the current silent fallback user construction when profile loading fails/missing; instead expose explicit auth/onboarding states (e.g., profileMissing, membershipMissing) so the router can guide the user. Ensure any modified/added user-facing text is in English."
-        },
-        {
-          "path": "frontend/src/pages/auth/ProfileSetupPage.tsx",
-          "operation": "create",
-          "description": "Create an authenticated profile setup page that is shown only when the user has accepted membership but lacks a profile; on save, trigger a refresh of auth state and any org/profile queries. Ensure text is English."
-        },
-        {
-          "path": "frontend/src/app/router/routes.tsx",
-          "operation": "modify",
-          "description": "Register the Profile Setup page route and ensure protected routes can redirect into it when appropriate (route wiring completeness)."
-        },
-        {
-          "path": "frontend/src/app/router/ProtectedRoute.tsx",
-          "operation": "modify",
-          "description": "Add membership/profile-aware gating: users who are authenticated but lack accepted membership and/or required profile should be routed to onboarding pages (accept invitation / profile setup) instead of seeing protected org pages. Ensure any modified/added user-facing text is in English."
-        },
-        {
-          "path": "frontend/src/app/router/PostAuthLanding.tsx",
-          "operation": "modify",
-          "description": "Refine post-auth redirects so that (1) users without accepted membership go to invitation acceptance, (2) users with membership but missing profile go to profile setup, and (3) only fully onboarded users proceed to org selection or dashboard. Ensure any modified/added user-facing text is in English."
+          "description": "Replace the <h1> header text currently sourced from strings.pipeline.title with a hardcoded \"Pipeline\" (in both the empty-boards state header and the normal page header). Keep strings.pipeline.description as-is, and do not change any navigation labels or document/tab title logic. Ensure the change is limited to the header <h1> only."
         }
       ]
     }

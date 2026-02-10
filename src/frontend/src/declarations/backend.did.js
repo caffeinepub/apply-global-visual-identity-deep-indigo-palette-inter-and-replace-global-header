@@ -19,12 +19,40 @@ export const _CaffeineStorageRefillResult = IDL.Record({
   'success' : IDL.Opt(IDL.Bool),
   'topped_up_amount' : IDL.Opt(IDL.Nat),
 });
+export const OrgId = IDL.Text;
+export const BoardId = IDL.Text;
+export const FieldType = IDL.Variant({
+  'singleSelect' : IDL.Text,
+  'date' : IDL.Int,
+  'tags' : IDL.Vec(IDL.Text),
+  'text' : IDL.Text,
+  'multiSelect' : IDL.Vec(IDL.Text),
+  'number' : IDL.Float64,
+});
+export const CustomFieldDefinition = IDL.Record({
+  'name' : IDL.Text,
+  'options' : IDL.Vec(IDL.Text),
+  'fieldType' : FieldType,
+});
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
-export const OrgId = IDL.Text;
+export const CustomField = IDL.Record({
+  'value' : FieldType,
+  'name' : IDL.Text,
+});
+export const CardInput = IDL.Record({
+  'title' : IDL.Text,
+  'orgId' : OrgId,
+  'dueDate' : IDL.Opt(IDL.Int),
+  'description' : IDL.Text,
+  'boardId' : BoardId,
+  'customFields' : IDL.Vec(CustomField),
+  'columnId' : IDL.Text,
+});
+export const CardId = IDL.Text;
 export const Contact = IDL.Record({
   'id' : IDL.Text,
   'orgId' : OrgId,
@@ -46,11 +74,47 @@ export const UserProfile = IDL.Record({
   'lastName' : IDL.Text,
   'firstName' : IDL.Text,
 });
+export const KanbanCard = IDL.Record({
+  'id' : CardId,
+  'title' : IDL.Text,
+  'orgId' : OrgId,
+  'createdAt' : IDL.Int,
+  'createdBy' : IDL.Principal,
+  'dueDate' : IDL.Opt(IDL.Int),
+  'description' : IDL.Text,
+  'boardId' : BoardId,
+  'customFields' : IDL.Vec(CustomField),
+  'updatedAt' : IDL.Int,
+  'columnId' : IDL.Text,
+});
+export const KanbanBoard = IDL.Record({
+  'id' : BoardId,
+  'customFieldDefinitions' : IDL.Vec(CustomFieldDefinition),
+  'orgId' : OrgId,
+  'name' : IDL.Text,
+  'createdAt' : IDL.Int,
+  'createdBy' : IDL.Principal,
+});
 export const Organization = IDL.Record({
   'id' : OrgId,
   'name' : IDL.Text,
   'createdAt' : IDL.Int,
   'createdBy' : IDL.Principal,
+});
+export const PipelineColumn = IDL.Record({
+  'id' : IDL.Text,
+  'orgId' : OrgId,
+  'name' : IDL.Text,
+  'createdAt' : IDL.Int,
+  'createdBy' : IDL.Principal,
+  'boardId' : BoardId,
+  'position' : IDL.Nat,
+});
+export const ColumnUpdate = IDL.Record({
+  'id' : IDL.Text,
+  'name' : IDL.Text,
+  'boardId' : BoardId,
+  'newPosition' : IDL.Nat,
 });
 
 export const idlService = IDL.Service({
@@ -81,15 +145,52 @@ export const idlService = IDL.Service({
     ),
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'addOrUpdateCustomFieldDefinition' : IDL.Func(
+      [OrgId, BoardId, CustomFieldDefinition],
+      [],
+      [],
+    ),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'createCard' : IDL.Func([CardInput], [CardId], []),
   'createContact' : IDL.Func([Contact], [], []),
+  'createKanbanBoard' : IDL.Func([OrgId, IDL.Text], [BoardId], []),
   'createOrganization' : IDL.Func([IDL.Text, IDL.Int], [OrgId], []),
+  'createPipelineColumn' : IDL.Func(
+      [OrgId, BoardId, IDL.Text, IDL.Nat, IDL.Int],
+      [IDL.Text],
+      [],
+    ),
+  'deleteCard' : IDL.Func([CardId], [], []),
   'deleteContact' : IDL.Func([IDL.Text], [], []),
+  'deleteKanbanBoard' : IDL.Func([BoardId], [], []),
   'deleteOrganization' : IDL.Func([OrgId], [], []),
+  'deletePipelineColumn' : IDL.Func([IDL.Text, BoardId], [], []),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getCard' : IDL.Func([CardId], [KanbanCard], ['query']),
+  'getCardsByBoard' : IDL.Func(
+      [OrgId, BoardId],
+      [IDL.Vec(KanbanCard)],
+      ['query'],
+    ),
+  'getCardsByColumn' : IDL.Func(
+      [IDL.Text, BoardId],
+      [IDL.Vec(KanbanCard)],
+      ['query'],
+    ),
   'getContact' : IDL.Func([IDL.Text], [IDL.Opt(Contact)], ['query']),
+  'getKanbanBoard' : IDL.Func([BoardId], [KanbanBoard], ['query']),
   'getOrganization' : IDL.Func([OrgId], [IDL.Opt(Organization)], ['query']),
+  'getPipelineColumn' : IDL.Func(
+      [IDL.Text, BoardId],
+      [IDL.Opt(PipelineColumn)],
+      ['query'],
+    ),
+  'getPipelineColumns' : IDL.Func(
+      [OrgId, BoardId],
+      [IDL.Vec(PipelineColumn)],
+      ['query'],
+    ),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
@@ -97,10 +198,21 @@ export const idlService = IDL.Service({
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'listContacts' : IDL.Func([OrgId], [IDL.Vec(Contact)], ['query']),
+  'listKanbanBoards' : IDL.Func([OrgId], [IDL.Vec(KanbanBoard)], ['query']),
   'listOrganizations' : IDL.Func([], [IDL.Vec(Organization)], ['query']),
+  'moveCard' : IDL.Func([CardId, IDL.Text], [], []),
+  'renamePipelineColumn' : IDL.Func([IDL.Text, BoardId, IDL.Text], [], []),
+  'reorderPipelineColumns' : IDL.Func(
+      [OrgId, BoardId, IDL.Vec(ColumnUpdate)],
+      [],
+      [],
+    ),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'updateCard' : IDL.Func([CardId, CardInput], [], []),
   'updateContact' : IDL.Func([IDL.Text, IDL.Text, IDL.Text, IDL.Text], [], []),
+  'updateKanbanBoard' : IDL.Func([BoardId, IDL.Text], [], []),
   'updateOrganization' : IDL.Func([OrgId, IDL.Text], [], []),
+  'updatePipelineColumn' : IDL.Func([IDL.Text, BoardId, IDL.Text], [], []),
 });
 
 export const idlInitArgs = [];
@@ -117,12 +229,37 @@ export const idlFactory = ({ IDL }) => {
     'success' : IDL.Opt(IDL.Bool),
     'topped_up_amount' : IDL.Opt(IDL.Nat),
   });
+  const OrgId = IDL.Text;
+  const BoardId = IDL.Text;
+  const FieldType = IDL.Variant({
+    'singleSelect' : IDL.Text,
+    'date' : IDL.Int,
+    'tags' : IDL.Vec(IDL.Text),
+    'text' : IDL.Text,
+    'multiSelect' : IDL.Vec(IDL.Text),
+    'number' : IDL.Float64,
+  });
+  const CustomFieldDefinition = IDL.Record({
+    'name' : IDL.Text,
+    'options' : IDL.Vec(IDL.Text),
+    'fieldType' : FieldType,
+  });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
-  const OrgId = IDL.Text;
+  const CustomField = IDL.Record({ 'value' : FieldType, 'name' : IDL.Text });
+  const CardInput = IDL.Record({
+    'title' : IDL.Text,
+    'orgId' : OrgId,
+    'dueDate' : IDL.Opt(IDL.Int),
+    'description' : IDL.Text,
+    'boardId' : BoardId,
+    'customFields' : IDL.Vec(CustomField),
+    'columnId' : IDL.Text,
+  });
+  const CardId = IDL.Text;
   const Contact = IDL.Record({
     'id' : IDL.Text,
     'orgId' : OrgId,
@@ -144,11 +281,47 @@ export const idlFactory = ({ IDL }) => {
     'lastName' : IDL.Text,
     'firstName' : IDL.Text,
   });
+  const KanbanCard = IDL.Record({
+    'id' : CardId,
+    'title' : IDL.Text,
+    'orgId' : OrgId,
+    'createdAt' : IDL.Int,
+    'createdBy' : IDL.Principal,
+    'dueDate' : IDL.Opt(IDL.Int),
+    'description' : IDL.Text,
+    'boardId' : BoardId,
+    'customFields' : IDL.Vec(CustomField),
+    'updatedAt' : IDL.Int,
+    'columnId' : IDL.Text,
+  });
+  const KanbanBoard = IDL.Record({
+    'id' : BoardId,
+    'customFieldDefinitions' : IDL.Vec(CustomFieldDefinition),
+    'orgId' : OrgId,
+    'name' : IDL.Text,
+    'createdAt' : IDL.Int,
+    'createdBy' : IDL.Principal,
+  });
   const Organization = IDL.Record({
     'id' : OrgId,
     'name' : IDL.Text,
     'createdAt' : IDL.Int,
     'createdBy' : IDL.Principal,
+  });
+  const PipelineColumn = IDL.Record({
+    'id' : IDL.Text,
+    'orgId' : OrgId,
+    'name' : IDL.Text,
+    'createdAt' : IDL.Int,
+    'createdBy' : IDL.Principal,
+    'boardId' : BoardId,
+    'position' : IDL.Nat,
+  });
+  const ColumnUpdate = IDL.Record({
+    'id' : IDL.Text,
+    'name' : IDL.Text,
+    'boardId' : BoardId,
+    'newPosition' : IDL.Nat,
   });
   
   return IDL.Service({
@@ -179,15 +352,52 @@ export const idlFactory = ({ IDL }) => {
       ),
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'addOrUpdateCustomFieldDefinition' : IDL.Func(
+        [OrgId, BoardId, CustomFieldDefinition],
+        [],
+        [],
+      ),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'createCard' : IDL.Func([CardInput], [CardId], []),
     'createContact' : IDL.Func([Contact], [], []),
+    'createKanbanBoard' : IDL.Func([OrgId, IDL.Text], [BoardId], []),
     'createOrganization' : IDL.Func([IDL.Text, IDL.Int], [OrgId], []),
+    'createPipelineColumn' : IDL.Func(
+        [OrgId, BoardId, IDL.Text, IDL.Nat, IDL.Int],
+        [IDL.Text],
+        [],
+      ),
+    'deleteCard' : IDL.Func([CardId], [], []),
     'deleteContact' : IDL.Func([IDL.Text], [], []),
+    'deleteKanbanBoard' : IDL.Func([BoardId], [], []),
     'deleteOrganization' : IDL.Func([OrgId], [], []),
+    'deletePipelineColumn' : IDL.Func([IDL.Text, BoardId], [], []),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getCard' : IDL.Func([CardId], [KanbanCard], ['query']),
+    'getCardsByBoard' : IDL.Func(
+        [OrgId, BoardId],
+        [IDL.Vec(KanbanCard)],
+        ['query'],
+      ),
+    'getCardsByColumn' : IDL.Func(
+        [IDL.Text, BoardId],
+        [IDL.Vec(KanbanCard)],
+        ['query'],
+      ),
     'getContact' : IDL.Func([IDL.Text], [IDL.Opt(Contact)], ['query']),
+    'getKanbanBoard' : IDL.Func([BoardId], [KanbanBoard], ['query']),
     'getOrganization' : IDL.Func([OrgId], [IDL.Opt(Organization)], ['query']),
+    'getPipelineColumn' : IDL.Func(
+        [IDL.Text, BoardId],
+        [IDL.Opt(PipelineColumn)],
+        ['query'],
+      ),
+    'getPipelineColumns' : IDL.Func(
+        [OrgId, BoardId],
+        [IDL.Vec(PipelineColumn)],
+        ['query'],
+      ),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
@@ -195,14 +405,25 @@ export const idlFactory = ({ IDL }) => {
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'listContacts' : IDL.Func([OrgId], [IDL.Vec(Contact)], ['query']),
+    'listKanbanBoards' : IDL.Func([OrgId], [IDL.Vec(KanbanBoard)], ['query']),
     'listOrganizations' : IDL.Func([], [IDL.Vec(Organization)], ['query']),
+    'moveCard' : IDL.Func([CardId, IDL.Text], [], []),
+    'renamePipelineColumn' : IDL.Func([IDL.Text, BoardId, IDL.Text], [], []),
+    'reorderPipelineColumns' : IDL.Func(
+        [OrgId, BoardId, IDL.Vec(ColumnUpdate)],
+        [],
+        [],
+      ),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'updateCard' : IDL.Func([CardId, CardInput], [], []),
     'updateContact' : IDL.Func(
         [IDL.Text, IDL.Text, IDL.Text, IDL.Text],
         [],
         [],
       ),
+    'updateKanbanBoard' : IDL.Func([BoardId, IDL.Text], [], []),
     'updateOrganization' : IDL.Func([OrgId, IDL.Text], [], []),
+    'updatePipelineColumn' : IDL.Func([IDL.Text, BoardId, IDL.Text], [], []),
   });
 };
 

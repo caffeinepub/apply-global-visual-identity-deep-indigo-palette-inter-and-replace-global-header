@@ -1,47 +1,16 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Fix and complete backend + frontend logic so the app owner can create members (users) and manage CRM contacts; resolve backend client initialization issues causing create operations to fail.",
-  "architectural_notes": [
-    "Members are app users created by the app owner.",
-    "Contacts are CRM clients/customers and are separate entities from members.",
-    "Frontend must not call backend actors before the backend client is ready (handle actor loading/ready state)."
-  ],
-  "known_issues": [
-    "Creating contacts fails with error: \"Backend client not ready - actor is still loading\" (appears consistently).",
-    "Core operations reported broken: cannot add members or contacts."
-  ],
-  "isFixRequest": true,
+  "summary": "New project",
+  "architectural_notes": [],
+  "known_issues": [],
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-fix-backend-actor-initialization-so-the-app-does-not-require-a-missing-secret-token-to-become-usable-for-normal-authenticated-users-internet-identity-and-so-actor-creation-failures-do-not-leave-the-frontend-permanently-in-a-client-not-ready-state",
-      "title": "Fix backend actor initialization so the app does not require a missing secret token to become usable for normal authenticated users (Internet Identity), and so actor creation failures do not leave the frontend permanently in a \"client not ready\" state.",
+      "id": "feature-update-the-pipeline-page-header-title-to-display-pipeline-instead-of-pipeline-de-vendas-header-only-this-should-affect-the-h1-title-rendered-in-the-pipeline-page-header-and-not-change-navigation-labels-browser-tab-title-or-any-other-locations",
+      "title": "Update the Pipeline page header title to display \"Pipeline\" instead of \"Pipeline de Vendas\" (header only). This should affect the <h1> title rendered in the Pipeline page header and not change navigation labels, browser tab title, or any other locations.",
       "reqIds": [
         "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-make-crm-contact-create-update-delete-reliable-end-to-end-by-aligning-frontend-payloads-with-backend-expectations-e-g-backend-fields-that-must-be-derived-from-the-caller-such-as-createdby-and-by-ensuring-contact-mutations-cannot-run-until-the-backend-client-is-ready",
-      "title": "Make CRM contact create/update/delete reliable end-to-end by aligning frontend payloads with backend expectations (e.g., backend fields that must be derived from the caller such as createdBy) and by ensuring contact mutations cannot run until the backend client is ready.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-the-owner-managed-member-app-user-flow-the-app-owner-can-create-invite-members-for-an-organization-members-are-distinct-from-crm-contacts-and-invited-members-can-accept-the-invitation-after-logging-in-with-internet-identity-to-become-active-organization-members",
-      "title": "Implement the owner-managed member (app user) flow: the app owner can create/invite members for an organization, members are distinct from CRM contacts, and invited members can accept the invitation after logging in with Internet Identity to become active organization members.",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-replace-the-current-static-team-settings-ui-with-a-functional-team-management-ui-wired-to-the-backend-member-invitation-apis-invite-member-view-pending-invites-view-members-remove-revoke-and-update-role-if-supported",
-      "title": "Replace the current static Team/Settings UI with a functional Team management UI wired to the backend member/invitation APIs (invite member, view pending invites, view members, remove/revoke, and update role if supported).",
-      "reqIds": [
-        "REQ-4"
       ],
       "version": 1
     }
@@ -49,32 +18,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Fix backend client initialization/actor loading so create operations (members/contacts) work reliably",
+      "summary": "Alterar o nome exibido no cabeçalho da página de \"Pipeline de vendas\" para apenas \"Pipeline\"",
       "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Implement/restore full flow for owner-created members (app users) in backend + frontend",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Implement/restore full flow for CRM contact creation (separate from members) in backend + frontend",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-8",
-      "summary": "Ensure user profile creation/bootstrapping works with the owner-managed membership model: if a logged-in principal has no backend profile yet, the UI guides them through creating/saving a profile only when they have an accepted membership, and then re-loads auth state correctly.",
-      "reqIds": [
-        "REQ-5"
-      ],
       "status": "pending"
     }
   ],
-  "projectName": "Restore working member (user) and CRM contact creation; fix actor initialization and authorization",
+  "projectName": "Rename Pipeline page header to \"Pipeline\"",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

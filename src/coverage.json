@@ -1,108 +1,35 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-10T08:21:33.343Z",
+  "generatedAt": "2026-02-10T22:44:31.056Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 5,
-    "implemented": 4,
+    "total": 1,
+    "implemented": 1,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Fix backend actor initialization so the app does not require a missing secret token to become usable for normal authenticated users (Internet Identity), and so actor creation failures do not leave the frontend permanently in a \"client not ready\" state.",
+        "summary": "Update the Pipeline page header title to display \"Pipeline\" instead of \"Pipeline de Vendas\" (header only). This should affect the <h1> title rendered in the Pipeline page header and not change navigation labels, browser tab title, or any other locations.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/utils/urlParams.ts",
-          "frontend/src/hooks/useStage1Client.ts",
-          "frontend/src/components/states/BackendClientInitState.tsx",
-          "frontend/src/app/router/ProtectedRoute.tsx"
+          "frontend/src/pages/internal/PipelinePage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useStage1Client.ts",
-          "frontend/src/components/states/BackendClientInitState.tsx"
+          "frontend/src/pages/internal/PipelinePage.tsx"
         ]
-      },
-      {
-        "id": "REQ-2",
-        "summary": "Make CRM contact create/update/delete reliable end-to-end by aligning frontend payloads with backend expectations (e.g., backend fields that must be derived from the caller such as createdBy) and by ensuring contact mutations cannot run until the backend client is ready.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/backend.d.ts",
-          "frontend/src/data/api/backendClient.ts",
-          "frontend/src/pages/internal/ContactsPage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/backend.d.ts",
-          "frontend/src/data/api/backendClient.ts",
-          "frontend/src/pages/internal/ContactsPage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Implement the owner-managed member (app user) flow: the app owner can create/invite members for an organization, members are distinct from CRM contacts, and invited members can accept the invitation after logging in with Internet Identity to become active organization members.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/backend.d.ts",
-          "frontend/src/data/client.ts",
-          "frontend/src/data/api/backendClient.ts",
-          "frontend/src/pages/auth/AcceptInvitationPage.tsx",
-          "frontend/src/app/router/routes.tsx",
-          "frontend/src/app/router/PostAuthLanding.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/backend.d.ts",
-          "frontend/src/data/api/backendClient.ts"
-        ]
-      },
-      {
-        "id": "REQ-4",
-        "summary": "Replace the current static Team/Settings UI with a functional Team management UI wired to the backend member/invitation APIs (invite member, view pending invites, view members, remove/revoke, and update role if supported).",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/internal/settings/TeamManagementTab.tsx",
-          "frontend/src/pages/internal/SettingsPage.tsx",
-          "frontend/src/org/OrgProvider.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/internal/settings/TeamManagementTab.tsx",
-          "frontend/src/pages/internal/SettingsPage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-5",
-        "summary": "Ensure user profile creation/bootstrapping works with the owner-managed membership model: if a logged-in principal has no backend profile yet, the UI guides them through creating/saving a profile only when they have an accepted membership, and then re-loads auth state correctly.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/auth/AuthProvider.tsx",
-          "frontend/src/pages/auth/ProfileSetupPage.tsx",
-          "frontend/src/app/router/routes.tsx",
-          "frontend/src/app/router/ProtectedRoute.tsx",
-          "frontend/src/app/router/PostAuthLanding.tsx"
-        ],
-        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/backend.d.ts",
-    "frontend/src/backend.ts",
-    "frontend/src/components/states/BackendClientInitState.tsx",
-    "frontend/src/data/api/backendClient.ts",
-    "frontend/src/declarations/backend.did.d.ts",
-    "frontend/src/declarations/backend.did.js",
-    "frontend/src/hooks/useStage1Client.ts",
-    "frontend/src/pages/internal/ContactsPage.tsx",
-    "frontend/src/pages/internal/SettingsPage.tsx",
-    "frontend/src/pages/internal/settings/TeamManagementTab.tsx",
-    "frontend/src/pages/portal/DocumentsPage.tsx",
+    "frontend/src/pages/internal/PipelinePage.tsx",
+    "frontend/src/utils/urlParams.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

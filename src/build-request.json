@@ -1,120 +1,53 @@
 {
   "kind": "build_request",
-  "title": "Restore working member (user) and CRM contact creation; fix actor initialization and authorization",
-  "priority": "high",
+  "title": "Rename Pipeline page header to \"Pipeline\"",
+  "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix backend actor initialization so the app does not require a missing secret token to become usable for normal authenticated users (Internet Identity), and so actor creation failures do not leave the frontend permanently in a \"client not ready\" state.",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "Erro ao criar contato: Backend client not ready - actor is still loading",
-          "parece que nada esta funcionando, não consigo adicionar membros, nem contatos",
-          "quero que corrija toda a logica do back e front"
-        ]
-      },
-      "acceptanceCriteria": [
-        "A user can log in with Internet Identity and the backend actor finishes initialization without requiring any URL secret parameter.",
-        "If the secret token is absent/empty/invalid, the app still works for normal user flows (it must not permanently fail actor initialization).",
-        "If actor initialization fails for any reason, the UI shows a clear error state and provides a retry action instead of throwing \"Backend client not ready\" on actions."
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Make CRM contact create/update/delete reliable end-to-end by aligning frontend payloads with backend expectations (e.g., backend fields that must be derived from the caller such as createdBy) and by ensuring contact mutations cannot run until the backend client is ready.",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "Esta dando esse erro ao criar contatos",
-          "1- sempre",
-          "2-chega a enviar sim"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Creating a contact succeeds consistently after login (no \"Backend client not ready - actor is still loading\").",
-        "Backend enforces org edit permissions based on caller membership, but does not require the frontend to supply caller-derived fields incorrectly.",
-        "Contact list refreshes after create/update/delete and reflects the change without requiring a manual page reload.",
-        "The \"New Contact\" primary action is disabled (or shows a loading state) until the backend client is ready and an organization is selected."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Implement the owner-managed member (app user) flow: the app owner can create/invite members for an organization, members are distinct from CRM contacts, and invited members can accept the invitation after logging in with Internet Identity to become active organization members.",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "deveriam ser criados pelo proprietario do app, eu.",
-          "membros e contatos são diferentes, membros são os usuarios e contatos são os clientes registrados no crm"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Backend exposes operations to: create a member invitation (by email or identifier), list pending invitations, revoke an invitation, and accept an invitation (by the logged-in principal).",
-        "Backend exposes operations to list organization members (principals + profile info where available) for org admins/creators.",
-        "A newly invited user who logs in can accept an invitation and is then added to org membership; the user can access org data according to their role.",
-        "Member management operations are permissioned so only the organization creator/admin (and Firsty staff if applicable) can invite/revoke/change roles."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Replace the current static Team/Settings UI with a functional Team management UI wired to the backend member/invitation APIs (invite member, view pending invites, view members, remove/revoke, and update role if supported).",
+      "text": "Update the Pipeline page header title to display \"Pipeline\" instead of \"Pipeline de Vendas\" (header only). This should affect the <h1> title rendered in the Pipeline page header and not change navigation labels, browser tab title, or any other locations.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-4",
+          "msg-6",
+          "msg-7"
         ],
         "quotes": [
-          "não consigo adicionar membros"
+          "muda o nome da página para apenas pipeline ao inves de pipeline de vendas?",
+          "no cabeçalho da página",
+          "pode aplicar"
         ]
       },
       "acceptanceCriteria": [
-        "The Team tab shows real organization members loaded from the backend, not hard-coded demo entries.",
-        "The \"Invite Member\" action opens a form that creates an invitation via the backend and shows success/error toasts.",
-        "Pending invitations are visible and can be revoked.",
-        "Removing a member (or revoking access) updates the backend and refreshes the list."
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "text": "Ensure user profile creation/bootstrapping works with the owner-managed membership model: if a logged-in principal has no backend profile yet, the UI guides them through creating/saving a profile only when they have an accepted membership, and then re-loads auth state correctly.",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "não sei como esta sendo feita a criação de usuários e preciso que tudo isso esteja funcionando"
-        ]
-      },
-      "acceptanceCriteria": [
-        "If the backend has no profile for the caller, the app does not silently fall back to an unusable state; it shows a clear next-step screen (e.g., create profile / accept invite) appropriate to the user’s membership state.",
-        "After saving a profile, the authenticated user state updates and protected routes work without manual refresh.",
-        "Users without an accepted invitation/membership cannot select or access an organization’s protected pages (they see an access-denied or onboarding state)."
+        "When visiting the internal Pipeline page, the header <h1> displays exactly: \"Pipeline\".",
+        "The Pipeline page description text remains unchanged.",
+        "No other UI labels (e.g., sidebar/nav items) are changed as part of this update.",
+        "No changes are made to the browser tab title as part of this update."
       ]
     }
   ],
   "constraints": [
-    "Use English for any user-facing text added or modified as part of these changes.",
-    "Backend must remain a single Motoko actor in backend/main.mo; add backend/migration.mo only if persistent state shape changes require it.",
-    "Do not edit frontend immutable paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui/* (compose instead)."
+    "Do not edit any files under frontend/src/components/ui or any other paths listed as immutable in SYSTEM_CONTEXT.",
+    "Keep the change limited to the Pipeline page header text only."
   ],
   "nonGoals": [
-    "Implementing email delivery for invitations (invitations are recorded in-app only).",
-    "Adding third-party authentication providers beyond Internet Identity.",
-    "Implementing unrelated modules that are currently stubbed (tasks/meetings/deliverables/KPIs) except where needed to prevent crashes.",
-    "Introducing external databases or services."
+    "Renaming the Pipeline label in the sidebar/mobile navigation.",
+    "Changing the browser tab title/metadata.",
+    "Changing any backend behavior or stored data."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

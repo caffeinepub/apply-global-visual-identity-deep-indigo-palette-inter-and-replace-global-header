@@ -1,4 +1,4 @@
-import type { backendInterface, AppUserRole as BackendAppUserRole } from '../../backend';
+import type { backendInterface, AppUserRole as BackendAppUserRole, ColumnUpdate, CardInput as BackendCardInput, CustomField as BackendCustomField, FieldType as BackendFieldType, CustomFieldDefinition as BackendCustomFieldDefinition } from '../../backend';
 import type { AppRole } from '../../auth/roles';
 import type {
   Contact,
@@ -14,9 +14,12 @@ import type {
   Deliverable,
   UserProfile as FrontendUserProfile,
 } from '../../types/model';
+import type { PipelineStage, PipelineStageReorderUpdate } from '../../types/pipelineStages';
+import type { KanbanCard, CardInput, CardCustomField, CustomFieldValue } from '../../types/kanbanCards';
 import { ExternalBlob } from '../../backend';
 import { Principal } from '@icp-sdk/core/principal';
-import type { DataClient } from '../client';
+import type { DataClient, KanbanBoard } from '../client';
+import type { KanbanBoardWithDefinitions } from '../../hooks/useKanbanBoard';
 
 // Mapeamento de roles entre frontend e backend
 function mapFrontendRoleToBackend(role: AppRole): BackendAppUserRole {
@@ -37,6 +40,84 @@ function mapBackendRoleToFrontend(role: BackendAppUserRole): AppRole {
     FIRSTY_ADMIN: 'FIRSTY_ADMIN',
   };
   return mapping[role] || 'MEMBER';
+}
+
+// Map backend FieldType to frontend CustomFieldValue
+function mapBackendFieldTypeToFrontend(fieldType: BackendFieldType): CustomFieldValue {
+  if ('text' in fieldType) {
+    return { text: fieldType.text };
+  } else if ('number' in fieldType) {
+    return { number: fieldType.number };
+  } else if ('date' in fieldType) {
+    return { date: new Date(Number(fieldType.date)) };
+  } else if ('singleSelect' in fieldType) {
+    return { singleSelect: fieldType.singleSelect };
+  } else if ('multiSelect' in fieldType) {
+    return { multiSelect: fieldType.multiSelect };
+  } else if ('tags' in fieldType) {
+    return { tags: fieldType.tags };
+  }
+  return {};
+}
+
+// Map frontend CustomFieldValue to backend FieldType
+function mapFrontendFieldTypeToBackend(value: CustomFieldValue): BackendFieldType {
+  if (value.text !== undefined) {
+    return { __kind__: 'text', text: value.text };
+  } else if (value.number !== undefined) {
+    return { __kind__: 'number', number: value.number };
+  } else if (value.date !== undefined) {
+    return { __kind__: 'date', date: BigInt(value.date.getTime()) };
+  } else if (value.singleSelect !== undefined) {
+    return { __kind__: 'singleSelect', singleSelect: value.singleSelect };
+  } else if (value.multiSelect !== undefined) {
+    return { __kind__: 'multiSelect', multiSelect: value.multiSelect };
+  } else if (value.tags !== undefined) {
+    return { __kind__: 'tags', tags: value.tags };
+  }
+  // Default to empty text
+  return { __kind__: 'text', text: '' };
+}
+
+// Map backend CustomField to frontend CardCustomField
+function mapBackendCustomFieldToFrontend(backendField: BackendCustomField, index: number): CardCustomField {
+  const value = mapBackendFieldTypeToFrontend(backendField.value);
+  
+  // Determine field type from value
+  let type: CardCustomField['type'] = 'text';
+  let options: string[] | undefined;
+  
+  if (value.text !== undefined) {
+    type = 'text';
+  } else if (value.number !== undefined) {
+    type = 'number';
+  } else if (value.date !== undefined) {
+    type = 'date';
+  } else if (value.singleSelect !== undefined) {
+    type = 'singleSelect';
+    options = [value.singleSelect];
+  } else if (value.multiSelect !== undefined) {
+    type = 'multiSelect';
+    options = value.multiSelect;
+  } else if (value.tags !== undefined) {
+    type = 'tags';
+  }
+  
+  return {
+    id: `field-${index}`,
+    name: backendField.name,
+    type,
+    options,
+    value,
+  };
+}
+
+// Map frontend CardCustomField to backend CustomField
+function mapFrontendCustomFieldToBackend(field: CardCustomField): BackendCustomField {
+  return {
+    name: field.name,
+    value: mapFrontendFieldTypeToBackend(field.value),
+  };
 }
 
 export class BackendClient implements DataClient {
@@ -113,12 +194,10 @@ export class BackendClient implements DataClient {
 
   // Projetos
   async listProjects(orgId: string): Promise<Project[]> {
-    // Backend doesn't have listProjects yet
     return [];
   }
 
   async getProject(projectId: string): Promise<Project | null> {
-    // Backend doesn't have getProject yet
     return null;
   }
 
@@ -126,7 +205,7 @@ export class BackendClient implements DataClient {
     throw new Error('Projects not implemented in backend yet');
   }
 
-  // Tarefas (não implementado no backend ainda)
+  // Tarefas
   async listTasks(projectId: string): Promise<Task[]> {
     return [];
   }
@@ -147,7 +226,7 @@ export class BackendClient implements DataClient {
     throw new Error('Tasks not implemented in backend yet');
   }
 
-  // Reuniões (não implementado no backend ainda)
+  // Reuniões
   async listMeetings(projectId: string): Promise<Meeting[]> {
     return [];
   }
@@ -164,7 +243,7 @@ export class BackendClient implements DataClient {
     throw new Error('Meetings not implemented in backend yet');
   }
 
-  // Entregáveis (não implementado no backend ainda)
+  // Entregáveis
   async listDeliverables(projectId: string): Promise<Deliverable[]> {
     return [];
   }
@@ -177,25 +256,22 @@ export class BackendClient implements DataClient {
     throw new Error('Deliverables not implemented in backend yet');
   }
 
-  // KPIs (não implementado no backend ainda)
+  // KPIs
   async listKpis(projectId: string): Promise<any[]> {
     return [];
   }
 
   // Mensagens
   async listMessages(orgId: string) {
-    // Backend doesn't have getSupportMessages yet
     return [];
   }
 
   async sendMessage(orgId: string, message: string) {
-    // Backend doesn't have sendSupportMessage yet
     throw new Error('Messages not implemented in backend yet');
   }
 
   // Documentos
   async listDocuments(orgId: string) {
-    // Backend doesn't have listDocuments yet
     return [];
   }
 
@@ -232,13 +308,11 @@ export class BackendClient implements DataClient {
   }
 
   async createContact(orgId: string, contact: Partial<Contact>): Promise<Contact> {
-    // Get current user's principal from the actor
     const profile = await this.actor.getCallerUserProfile();
     if (!profile) {
       throw new Error('User profile not found');
     }
     
-    // Create contact with backend-expected structure
     const contactId = `contact-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const newContact = {
       id: contactId,
@@ -246,7 +320,7 @@ export class BackendClient implements DataClient {
       email: contact.email || '',
       phone: contact.phone || '',
       orgId,
-      createdBy: Principal.fromText('aaaaa-aa'), // Placeholder - backend will use caller
+      createdBy: Principal.fromText('aaaaa-aa'),
     };
     
     await this.actor.createContact(newContact);
@@ -286,7 +360,6 @@ export class BackendClient implements DataClient {
 
   // CRM - Deals
   async listDeals(orgId: string): Promise<Deal[]> {
-    // Backend doesn't have listDeals yet
     return [];
   }
 
@@ -304,7 +377,6 @@ export class BackendClient implements DataClient {
 
   // CRM - Atividades
   async listActivities(orgId: string): Promise<Activity[]> {
-    // Backend doesn't have listActivities yet
     return [];
   }
 
@@ -320,9 +392,8 @@ export class BackendClient implements DataClient {
     throw new Error('Activities not implemented in backend yet');
   }
 
-  // Contratos
+  // CRM - Contratos
   async listContracts(orgId: string): Promise<Contract[]> {
-    // Backend doesn't have listContracts yet
     return [];
   }
 
@@ -344,7 +415,6 @@ export class BackendClient implements DataClient {
 
   // Financeiro
   async listFinanceTransactions(orgId: string): Promise<FinanceTransaction[]> {
-    // Backend doesn't have listFinanceTransactions yet
     return [];
   }
 
@@ -362,7 +432,6 @@ export class BackendClient implements DataClient {
 
   // NPS Campaigns & Responses
   async listNpsCampaigns(orgId: string): Promise<NpsCampaign[]> {
-    // Backend doesn't have listNpsCampaigns yet
     return [];
   }
 
@@ -371,7 +440,6 @@ export class BackendClient implements DataClient {
   }
 
   async listNpsResponses(orgId: string, startDate: Date, endDate: Date): Promise<NpsResponse[]> {
-    // Backend doesn't have listNpsResponses yet
     return [];
   }
 
@@ -381,7 +449,6 @@ export class BackendClient implements DataClient {
 
   // Reports
   async listReports(orgId: string): Promise<any[]> {
-    // Backend doesn't have listReports yet
     return [];
   }
 
@@ -399,12 +466,171 @@ export class BackendClient implements DataClient {
   }
 
   async listOrgMembers(orgId: string): Promise<any[]> {
-    // Backend doesn't have listOrgMembers yet
     return [];
   }
 
   async listTeamInvitations(orgId: string): Promise<any[]> {
-    // Backend doesn't have listTeamInvitations yet
     return [];
+  }
+
+  // Pipeline Stages (board-scoped)
+  async listPipelineStages(orgId: string, boardId: string): Promise<PipelineStage[]> {
+    const columns = await this.actor.getPipelineColumns(orgId, boardId);
+    return columns.map((col) => ({
+      id: col.id,
+      name: col.name,
+      position: Number(col.position),
+      orgId: col.orgId,
+      boardId: col.boardId,
+      createdBy: col.createdBy.toString(),
+      createdAt: new Date(Number(col.createdAt)),
+    }));
+  }
+
+  async createPipelineStage(orgId: string, boardId: string, name: string): Promise<string> {
+    const stages = await this.listPipelineStages(orgId, boardId);
+    const position = stages.length;
+    const timestamp = BigInt(Date.now());
+    return await this.actor.createPipelineColumn(orgId, boardId, name, BigInt(position), timestamp);
+  }
+
+  async renamePipelineStage(stageId: string, boardId: string, newName: string): Promise<void> {
+    await this.actor.updatePipelineColumn(stageId, boardId, newName);
+  }
+
+  async deletePipelineStage(stageId: string, boardId: string): Promise<void> {
+    await this.actor.deletePipelineColumn(stageId, boardId);
+  }
+
+  async reorderPipelineStages(orgId: string, boardId: string, updates: PipelineStageReorderUpdate[]): Promise<void> {
+    const backendUpdates: ColumnUpdate[] = updates.map((u) => ({
+      id: u.id,
+      name: u.name,
+      boardId: u.boardId,
+      newPosition: BigInt(u.newPosition),
+    }));
+    await this.actor.reorderPipelineColumns(orgId, boardId, backendUpdates);
+  }
+
+  // Kanban Boards
+  async listKanbanBoards(orgId: string): Promise<KanbanBoard[]> {
+    const boards = await this.actor.listKanbanBoards(orgId);
+    return boards.map((board) => ({
+      id: board.id,
+      name: board.name,
+      orgId: board.orgId,
+      createdBy: board.createdBy.toString(),
+      createdAt: new Date(Number(board.createdAt)),
+    }));
+  }
+
+  async createKanbanBoard(orgId: string, name: string): Promise<string> {
+    return await this.actor.createKanbanBoard(orgId, name);
+  }
+
+  async renameKanbanBoard(boardId: string, name: string): Promise<void> {
+    await this.actor.updateKanbanBoard(boardId, name);
+  }
+
+  async getKanbanBoard(boardId: string): Promise<KanbanBoardWithDefinitions> {
+    const board = await this.actor.getKanbanBoard(boardId);
+    return {
+      id: board.id,
+      name: board.name,
+      orgId: board.orgId,
+      createdBy: board.createdBy.toString(),
+      createdAt: new Date(Number(board.createdAt)),
+      customFieldDefinitions: board.customFieldDefinitions,
+    };
+  }
+
+  async addOrUpdateCustomFieldDefinition(orgId: string, boardId: string, definition: BackendCustomFieldDefinition): Promise<void> {
+    await this.actor.addOrUpdateCustomFieldDefinition(orgId, boardId, definition);
+  }
+
+  // Kanban Cards (board-scoped)
+  async listCardsByBoard(orgId: string, boardId: string): Promise<KanbanCard[]> {
+    const cards = await this.actor.getCardsByBoard(orgId, boardId);
+    return cards.map((card) => ({
+      id: card.id,
+      title: card.title,
+      description: card.description,
+      dueDate: card.dueDate ? new Date(Number(card.dueDate)) : undefined,
+      columnId: card.columnId,
+      orgId: card.orgId,
+      boardId: card.boardId,
+      createdBy: card.createdBy.toString(),
+      createdAt: new Date(Number(card.createdAt)),
+      updatedAt: new Date(Number(card.updatedAt)),
+      customFields: card.customFields.map((f, i) => mapBackendCustomFieldToFrontend(f, i)),
+    }));
+  }
+
+  async listCardsByColumn(columnId: string, boardId: string): Promise<KanbanCard[]> {
+    const cards = await this.actor.getCardsByColumn(columnId, boardId);
+    return cards.map((card) => ({
+      id: card.id,
+      title: card.title,
+      description: card.description,
+      dueDate: card.dueDate ? new Date(Number(card.dueDate)) : undefined,
+      columnId: card.columnId,
+      orgId: card.orgId,
+      boardId: card.boardId,
+      createdBy: card.createdBy.toString(),
+      createdAt: new Date(Number(card.createdAt)),
+      updatedAt: new Date(Number(card.updatedAt)),
+      customFields: card.customFields.map((f, i) => mapBackendCustomFieldToFrontend(f, i)),
+    }));
+  }
+
+  async getCard(cardId: string): Promise<KanbanCard> {
+    const card = await this.actor.getCard(cardId);
+    return {
+      id: card.id,
+      title: card.title,
+      description: card.description,
+      dueDate: card.dueDate ? new Date(Number(card.dueDate)) : undefined,
+      columnId: card.columnId,
+      orgId: card.orgId,
+      boardId: card.boardId,
+      createdBy: card.createdBy.toString(),
+      createdAt: new Date(Number(card.createdAt)),
+      updatedAt: new Date(Number(card.updatedAt)),
+      customFields: card.customFields.map((f, i) => mapBackendCustomFieldToFrontend(f, i)),
+    };
+  }
+
+  async createCard(input: CardInput): Promise<string> {
+    const backendInput: BackendCardInput = {
+      title: input.title,
+      description: input.description,
+      dueDate: input.dueDate ? BigInt(input.dueDate.getTime()) : undefined,
+      columnId: input.columnId,
+      orgId: input.orgId,
+      boardId: input.boardId,
+      customFields: input.customFields.map(mapFrontendCustomFieldToBackend),
+    };
+    return await this.actor.createCard(backendInput);
+  }
+
+  async updateCard(cardId: string, input: CardInput): Promise<void> {
+    const backendInput: BackendCardInput = {
+      title: input.title,
+      description: input.description,
+      dueDate: input.dueDate ? BigInt(input.dueDate.getTime()) : undefined,
+      columnId: input.columnId,
+      orgId: input.orgId,
+      boardId: input.boardId,
+      customFields: input.customFields.map(mapFrontendCustomFieldToBackend),
+    };
+    await this.actor.updateCard(cardId, backendInput);
+  }
+
+  async moveCard(cardId: string, destinationColumnId: string): Promise<void> {
+    await this.actor.moveCard(cardId, destinationColumnId);
+  }
+
+  async deleteCard(cardId: string): Promise<void> {
+    await this.actor.deleteCard(cardId);
   }
 }
