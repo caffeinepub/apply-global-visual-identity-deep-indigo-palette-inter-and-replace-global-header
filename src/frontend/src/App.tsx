@@ -5,7 +5,8 @@ import { AuthProvider } from './auth/AuthProvider';
 import { OrgProvider } from './org/OrgProvider';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/sonner';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
+import { configureSonner } from './toast/configureSonner';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,6 +29,11 @@ export default function App() {
       }),
     []
   );
+
+  // Configure Sonner toast behavior on mount
+  useEffect(() => {
+    configureSonner();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -11,37 +11,50 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, FileText, Download, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { ExternalBlob, DocumentCategory } from '../../backend';
+import { ExternalBlob } from '../../backend';
 import type { Document } from '../../types/model';
 import { isMockMode } from '../../config/dataMode';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
+// Backend document category values (as strings)
+type DocumentCategoryValue = 
+  | 'contracts'
+  | 'invoices'
+  | 'presentations'
+  | 'reports'
+  | 'marketing'
+  | 'mediaAssets'
+  | 'projectDocs'
+  | 'proposals'
+  | 'legal'
+  | 'other';
+
 // Map UI category labels (pt-BR) to backend enum values
-const CATEGORY_MAP: Record<string, DocumentCategory> = {
-  'Contratos': DocumentCategory.contracts,
-  'Faturas': DocumentCategory.invoices,
-  'Apresentações': DocumentCategory.presentations,
-  'Relatórios': DocumentCategory.reports,
-  'Marketing': DocumentCategory.marketing,
-  'Mídias': DocumentCategory.mediaAssets,
-  'Documentos do Projeto': DocumentCategory.projectDocs,
-  'Propostas': DocumentCategory.proposals,
-  'Jurídico': DocumentCategory.legal,
-  'Outros': DocumentCategory.other,
+const CATEGORY_MAP: Record<string, DocumentCategoryValue> = {
+  'Contratos': 'contracts',
+  'Faturas': 'invoices',
+  'Apresentações': 'presentations',
+  'Relatórios': 'reports',
+  'Marketing': 'marketing',
+  'Mídias': 'mediaAssets',
+  'Documentos do Projeto': 'projectDocs',
+  'Propostas': 'proposals',
+  'Jurídico': 'legal',
+  'Outros': 'other',
 };
 
 // Reverse map for display (pt-BR)
-const CATEGORY_DISPLAY: Record<DocumentCategory, string> = {
-  [DocumentCategory.contracts]: 'Contratos',
-  [DocumentCategory.invoices]: 'Faturas',
-  [DocumentCategory.presentations]: 'Apresentações',
-  [DocumentCategory.reports]: 'Relatórios',
-  [DocumentCategory.marketing]: 'Marketing',
-  [DocumentCategory.mediaAssets]: 'Mídias',
-  [DocumentCategory.projectDocs]: 'Documentos do Projeto',
-  [DocumentCategory.proposals]: 'Propostas',
-  [DocumentCategory.legal]: 'Jurídico',
-  [DocumentCategory.other]: 'Outros',
+const CATEGORY_DISPLAY: Record<DocumentCategoryValue, string> = {
+  'contracts': 'Contratos',
+  'invoices': 'Faturas',
+  'presentations': 'Apresentações',
+  'reports': 'Relatórios',
+  'marketing': 'Marketing',
+  'mediaAssets': 'Mídias',
+  'projectDocs': 'Documentos do Projeto',
+  'proposals': 'Propostas',
+  'legal': 'Jurídico',
+  'other': 'Outros',
 };
 
 export default function DocumentsPage() {

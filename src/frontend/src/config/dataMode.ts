@@ -1,40 +1,32 @@
 /**
  * Configuração do modo de dados da aplicação.
- * MOCK: usa dados locais em memória (padrão)
- * BACKEND: conecta ao canister Motoko no Internet Computer
+ * BACKEND: conecta ao canister Motoko no Internet Computer (modo padrão)
  */
 
-export type DataMode = 'MOCK' | 'BACKEND';
-
-// Modo padrão é MOCK para desenvolvimento sem backend
-const DEFAULT_MODE: DataMode = 'MOCK';
+export type DataMode = 'BACKEND';
 
 /**
  * Obtém o modo de dados atual da aplicação.
- * Pode ser configurado via variável de ambiente VITE_DATA_MODE.
+ * Sempre retorna 'BACKEND' - modo mock foi removido.
  * 
- * @returns 'MOCK' ou 'BACKEND'
+ * @returns 'BACKEND'
  */
 export function getDataMode(): DataMode {
-  const envMode = import.meta.env.VITE_DATA_MODE?.toUpperCase();
-  
-  if (envMode === 'BACKEND') {
-    return 'BACKEND';
-  }
-  
-  return DEFAULT_MODE;
+  return 'BACKEND';
 }
 
 /**
  * Verifica se o app está em modo MOCK.
+ * Sempre retorna false - modo mock foi removido.
  */
 export function isMockMode(): boolean {
-  return getDataMode() === 'MOCK';
+  return false;
 }
 
 /**
  * Verifica se o app está em modo BACKEND.
+ * Sempre retorna true - modo backend é o único disponível.
  */
 export function isBackendMode(): boolean {
-  return getDataMode() === 'BACKEND';
+  return true;
 }

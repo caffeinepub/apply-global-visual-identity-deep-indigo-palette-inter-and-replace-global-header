@@ -46,24 +46,34 @@ export default function ActivitiesPage() {
 
   const { data: activities, isLoading, isError, error } = useQuery({
     queryKey: ['activities', currentOrgId],
-    queryFn: () => client.listActivities(currentOrgId!),
-    enabled: isReady && !!currentOrgId,
+    queryFn: () => {
+      if (!client) throw new Error('Client not ready');
+      return client.listActivities(currentOrgId!);
+    },
+    enabled: isReady && !!currentOrgId && !!client,
   });
 
   const { data: contacts } = useQuery({
     queryKey: ['contacts', currentOrgId],
-    queryFn: () => client.listContacts(currentOrgId!),
-    enabled: isReady && !!currentOrgId,
+    queryFn: () => {
+      if (!client) throw new Error('Client not ready');
+      return client.listContacts(currentOrgId!);
+    },
+    enabled: isReady && !!currentOrgId && !!client,
   });
 
   const { data: deals } = useQuery({
     queryKey: ['deals', currentOrgId],
-    queryFn: () => client.listDeals(currentOrgId!),
-    enabled: isReady && !!currentOrgId,
+    queryFn: () => {
+      if (!client) throw new Error('Client not ready');
+      return client.listDeals(currentOrgId!);
+    },
+    enabled: isReady && !!currentOrgId && !!client,
   });
 
   const createActivityMutation = useMutation({
     mutationFn: async (activity: Partial<Activity>) => {
+      if (!client) throw new Error('Client not ready');
       return client.createActivity(currentOrgId!, activity);
     },
     onSuccess: () => {

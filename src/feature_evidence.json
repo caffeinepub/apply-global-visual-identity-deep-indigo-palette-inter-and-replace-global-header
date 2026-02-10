@@ -2,12 +2,73 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-implement-support-messaging-persistence-and-routing-so-that-messages-typed-in-the-app-s-support-messages-field-are-stored-and-are-accessible-to-firsty-firsty-admin-and-firsty-consultant-across-all-organizations-while-organization-users-can-only-see-their-own-organization-s-support-thread",
-      "featureTitle": "Implement support messaging persistence and routing so that messages typed in the app’s support messages field are stored and are accessible to Firsty (FIRSTY_ADMIN and FIRSTY_CONSULTANT) across all organizations, while organization users can only see their own organization’s support thread.",
+      "featureId": "feature-fix-backend-actor-initialization-so-the-app-does-not-require-a-missing-secret-token-to-become-usable-for-normal-authenticated-users-internet-identity-and-so-actor-creation-failures-do-not-leave-the-frontend-permanently-in-a-client-not-ready-state",
+      "featureTitle": "Fix backend actor initialization so the app does not require a missing secret token to become usable for normal authenticated users (Internet Identity), and so actor creation failures do not leave the frontend permanently in a \"client not ready\" state.",
+      "files": [
+        "frontend/src/components/states/BackendClientInitState.tsx",
+        "frontend/src/hooks/useStage1Client.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-make-crm-contact-create-update-delete-reliable-end-to-end-by-aligning-frontend-payloads-with-backend-expectations-e-g-backend-fields-that-must-be-derived-from-the-caller-such-as-createdby-and-by-ensuring-contact-mutations-cannot-run-until-the-backend-client-is-ready",
+      "featureTitle": "Make CRM contact create/update/delete reliable end-to-end by aligning frontend payloads with backend expectations (e.g., backend fields that must be derived from the caller such as createdBy) and by ensuring contact mutations cannot run until the backend client is ready.",
       "files": [
         "frontend/src/data/api/backendClient.ts",
-        "frontend/src/data/mock/mockClient.ts",
-        "frontend/src/pages/portal/MessagesPage.tsx"
+        "frontend/src/pages/internal/ContactsPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-the-owner-managed-member-app-user-flow-the-app-owner-can-create-invite-members-for-an-organization-members-are-distinct-from-crm-contacts-and-invited-members-can-accept-the-invitation-after-logging-in-with-internet-identity-to-become-active-organization-members",
+      "featureTitle": "Implement the owner-managed member (app user) flow: the app owner can create/invite members for an organization, members are distinct from CRM contacts, and invited members can accept the invitation after logging in with Internet Identity to become active organization members.",
+      "files": [
+        "frontend/src/data/api/backendClient.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-replace-the-current-static-team-settings-ui-with-a-functional-team-management-ui-wired-to-the-backend-member-invitation-apis-invite-member-view-pending-invites-view-members-remove-revoke-and-update-role-if-supported",
+      "featureTitle": "Replace the current static Team/Settings UI with a functional Team management UI wired to the backend member/invitation APIs (invite member, view pending invites, view members, remove/revoke, and update role if supported).",
+      "files": [
+        "frontend/src/pages/internal/SettingsPage.tsx",
+        "frontend/src/pages/internal/settings/TeamManagementTab.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -20,33 +81,6 @@
       ],
       "testIds": [
         "REQ-4"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-update-the-frontend-backend-mode-integration-so-authentication-and-role-resolution-come-from-the-backend-internet-identity-backend-role-context-and-add-an-organization-selector-filter-ux-for-firsty-roles-to-choose-which-organization-they-are-currently-viewing-operating-on",
-      "featureTitle": "Update the frontend backend-mode integration so authentication and role resolution come from the backend (Internet Identity + backend role context), and add an organization selector/filter UX for Firsty roles to choose which organization they are currently viewing/operating on.",
-      "files": [
-        "frontend/src/app/layout/Topbar.tsx",
-        "frontend/src/app/router/PostAuthLanding.tsx",
-        "frontend/src/auth/AuthProvider.tsx",
-        "frontend/src/auth/InternetIdentityAuthAdapter.ts",
-        "frontend/src/data/api/backendClient.ts",
-        "frontend/src/org/OrgProvider.tsx",
-        "frontend/src/pages/auth/SelectOrganizationPage.tsx",
-        "frontend/src/types/model.ts"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "blob-storage@4.0.0"
-      ],
-      "testIds": [
-        "REQ-5"
       ],
       "confidence": "high"
     }

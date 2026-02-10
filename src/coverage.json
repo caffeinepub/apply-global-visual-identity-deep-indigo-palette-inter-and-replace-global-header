@@ -1,103 +1,108 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T23:35:16.358Z",
+  "generatedAt": "2026-02-10T08:21:33.343Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
     "total": 5,
-    "implemented": 2,
+    "implemented": 4,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Implement durable (upgrade-safe) persistence for all backend collections used by the app so that created/edited data remains saved across canister upgrades, including organizations, user profiles, memberships, CRM entities, finance, NPS, documents, reports, and invitations.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
+        "summary": "Fix backend actor initialization so the app does not require a missing secret token to become usable for normal authenticated users (Internet Identity), and so actor creation failures do not leave the frontend permanently in a \"client not ready\" state.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/utils/urlParams.ts",
+          "frontend/src/hooks/useStage1Client.ts",
+          "frontend/src/components/states/BackendClientInitState.tsx",
+          "frontend/src/app/router/ProtectedRoute.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useStage1Client.ts",
+          "frontend/src/components/states/BackendClientInitState.tsx"
+        ]
       },
       {
         "id": "REQ-2",
-        "summary": "Add backend support for organization and membership management with the following rules: (1) OWNER_ADMIN and MEMBER users belong to exactly one organization; (2) FIRSTY_ADMIN and FIRSTY_CONSULTANT have access to all organizations; (3) FIRSTY_ADMIN and FIRSTY_CONSULTANT can edit data for any organization.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
+        "summary": "Make CRM contact create/update/delete reliable end-to-end by aligning frontend payloads with backend expectations (e.g., backend fields that must be derived from the caller such as createdBy) and by ensuring contact mutations cannot run until the backend client is ready.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/backend.d.ts",
+          "frontend/src/data/api/backendClient.ts",
+          "frontend/src/pages/internal/ContactsPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/backend.d.ts",
+          "frontend/src/data/api/backendClient.ts",
+          "frontend/src/pages/internal/ContactsPage.tsx"
+        ]
       },
       {
         "id": "REQ-3",
-        "summary": "Implement backend APIs needed by the existing frontend data client to fully persist the app’s entities (create, list, get, update, delete where applicable) for: contacts, deals/opportunities, activities, contracts, finance transactions, NPS (campaigns and responses as currently modeled), documents (including upload metadata), reports, projects, and team invitations/members.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
+        "summary": "Implement the owner-managed member (app user) flow: the app owner can create/invite members for an organization, members are distinct from CRM contacts, and invited members can accept the invitation after logging in with Internet Identity to become active organization members.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/backend.d.ts",
+          "frontend/src/data/client.ts",
+          "frontend/src/data/api/backendClient.ts",
+          "frontend/src/pages/auth/AcceptInvitationPage.tsx",
+          "frontend/src/app/router/routes.tsx",
+          "frontend/src/app/router/PostAuthLanding.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/backend.d.ts",
+          "frontend/src/data/api/backendClient.ts"
+        ]
       },
       {
         "id": "REQ-4",
-        "summary": "Implement support messaging persistence and routing so that messages typed in the app’s support messages field are stored and are accessible to Firsty (FIRSTY_ADMIN and FIRSTY_CONSULTANT) across all organizations, while organization users can only see their own organization’s support thread.",
+        "summary": "Replace the current static Team/Settings UI with a functional Team management UI wired to the backend member/invitation APIs (invite member, view pending invites, view members, remove/revoke, and update role if supported).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/portal/MessagesPage.tsx",
-          "frontend/src/data/api/backendClient.ts",
-          "frontend/src/data/mock/mockClient.ts",
-          "frontend/src/data/client.ts"
+          "frontend/src/pages/internal/settings/TeamManagementTab.tsx",
+          "frontend/src/pages/internal/SettingsPage.tsx",
+          "frontend/src/org/OrgProvider.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/portal/MessagesPage.tsx",
-          "frontend/src/data/api/backendClient.ts",
-          "frontend/src/data/mock/mockClient.ts"
+          "frontend/src/pages/internal/settings/TeamManagementTab.tsx",
+          "frontend/src/pages/internal/SettingsPage.tsx"
         ]
       },
       {
         "id": "REQ-5",
-        "summary": "Update the frontend backend-mode integration so authentication and role resolution come from the backend (Internet Identity + backend role context), and add an organization selector/filter UX for Firsty roles to choose which organization they are currently viewing/operating on.",
-        "status": "implemented",
+        "summary": "Ensure user profile creation/bootstrapping works with the owner-managed membership model: if a logged-in principal has no backend profile yet, the UI guides them through creating/saving a profile only when they have an accepted membership, and then re-loads auth state correctly.",
+        "status": "missing",
         "plannedFiles": [
           "frontend/src/auth/AuthProvider.tsx",
-          "frontend/src/auth/InternetIdentityAuthAdapter.ts",
-          "frontend/src/types/model.ts",
-          "frontend/src/org/OrgProvider.tsx",
-          "frontend/src/pages/auth/SelectOrganizationPage.tsx",
-          "frontend/src/app/layout/Topbar.tsx",
-          "frontend/src/app/router/PostAuthLanding.tsx",
-          "frontend/src/data/api/backendClient.ts",
-          "frontend/src/backend.d.ts"
+          "frontend/src/pages/auth/ProfileSetupPage.tsx",
+          "frontend/src/app/router/routes.tsx",
+          "frontend/src/app/router/ProtectedRoute.tsx",
+          "frontend/src/app/router/PostAuthLanding.tsx"
         ],
-        "matchedFiles": [
-          "frontend/src/auth/AuthProvider.tsx",
-          "frontend/src/auth/InternetIdentityAuthAdapter.ts",
-          "frontend/src/types/model.ts",
-          "frontend/src/org/OrgProvider.tsx",
-          "frontend/src/pages/auth/SelectOrganizationPage.tsx",
-          "frontend/src/app/layout/Topbar.tsx",
-          "frontend/src/app/router/PostAuthLanding.tsx",
-          "frontend/src/data/api/backendClient.ts",
-          "frontend/src/backend.d.ts"
-        ]
+        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
     "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/app/layout/Topbar.tsx",
-    "frontend/src/app/router/PostAuthLanding.tsx",
-    "frontend/src/auth/AuthProvider.tsx",
-    "frontend/src/auth/InternetIdentityAuthAdapter.ts",
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
+    "frontend/src/components/states/BackendClientInitState.tsx",
     "frontend/src/data/api/backendClient.ts",
-    "frontend/src/data/mock/mockClient.ts",
-    "frontend/src/data/mock/seed.ts",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
-    "frontend/src/org/OrgProvider.tsx",
-    "frontend/src/pages/auth/SelectOrganizationPage.tsx",
-    "frontend/src/pages/portal/MessagesPage.tsx",
-    "frontend/src/types/model.ts",
+    "frontend/src/hooks/useStage1Client.ts",
+    "frontend/src/pages/internal/ContactsPage.tsx",
+    "frontend/src/pages/internal/SettingsPage.tsx",
+    "frontend/src/pages/internal/settings/TeamManagementTab.tsx",
+    "frontend/src/pages/portal/DocumentsPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

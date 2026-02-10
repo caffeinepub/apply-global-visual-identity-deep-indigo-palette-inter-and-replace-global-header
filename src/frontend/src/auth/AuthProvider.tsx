@@ -1,11 +1,8 @@
 import React, { createContext, useContext, ReactNode, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { isMockMode } from '../config/dataMode';
-import { MockAuthProvider, useMockAuth } from './MockAuthProvider';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { useActor } from '../hooks/useActor';
 import type { AppRole } from './roles';
-import type { IIAuthUser } from './InternetIdentityAuthAdapter';
 import { adaptIdentityToUser } from './InternetIdentityAuthAdapter';
 
 // Tipo unificado de usuário
@@ -26,36 +23,6 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-
-// Provider para modo MOCK
-function MockAuthWrapper({ children }: { children: ReactNode }) {
-  const mockAuth = useMockAuth();
-  const queryClient = useQueryClient();
-
-  const logout = () => {
-    mockAuth.logout();
-    queryClient.clear();
-  };
-
-  const user: AuthUser | null = mockAuth.user
-    ? {
-        id: mockAuth.user.id,
-        name: mockAuth.user.name,
-        email: mockAuth.user.email,
-        role: mockAuth.user.role,
-      }
-    : null;
-
-  const value: AuthContextValue = {
-    user,
-    isAuthenticated: mockAuth.isAuthenticated,
-    isLoading: false,
-    login: () => {}, // No modo MOCK, login é feito via MockRoleSelector
-    logout,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
 
 // Provider para modo BACKEND (Internet Identity)
 function BackendAuthWrapper({ children }: { children: ReactNode }) {
@@ -133,16 +100,8 @@ function BackendAuthWrapper({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// Provider principal que escolhe entre MOCK e BACKEND
+// Provider principal que usa apenas BACKEND
 export function AuthProvider({ children }: { children: ReactNode }) {
-  if (isMockMode()) {
-    return (
-      <MockAuthProvider>
-        <MockAuthWrapper>{children}</MockAuthWrapper>
-      </MockAuthProvider>
-    );
-  }
-
   return <BackendAuthWrapper>{children}</BackendAuthWrapper>;
 }
 

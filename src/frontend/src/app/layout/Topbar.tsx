@@ -2,8 +2,6 @@ import React from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useAuth } from '../../auth/AuthProvider';
 import { useCurrentOrg } from '../../org/OrgProvider';
-import { isMockMode } from '../../config/dataMode';
-import { MockRoleSelector } from '../../auth/MockAuthProvider';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,16 +69,6 @@ export function Topbar() {
                     <RefreshCw className="mr-2 h-4 w-4" />
                     Trocar Organização
                   </DropdownMenuItem>
-                </>
-              )}
-              
-              {isMockMode() && (
-                <>
-                  <DropdownMenuSeparator />
-                  <div className="p-2">
-                    <p className="text-xs font-medium mb-2 text-muted-foreground">Modo MOCK - Trocar papel:</p>
-                    <MockRoleSelector />
-                  </div>
                 </>
               )}
               

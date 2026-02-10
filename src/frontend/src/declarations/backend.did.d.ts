@@ -10,37 +10,10 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export interface Activity {
-  'id' : string,
-  'orgId' : OrgId,
-  'relatedProject' : [] | [string],
-  'name' : string,
-  'createdBy' : Principal,
-  'completed' : boolean,
-  'dueDate' : [] | [bigint],
-}
 export type AppUserRole = { 'FIRSTY_CONSULTANT' : null } |
   { 'FIRSTY_ADMIN' : null } |
   { 'OWNER_ADMIN' : null } |
   { 'MEMBER' : null };
-export interface CancellationStats { 'count' : bigint, 'reason' : string }
-export interface ChurnOverview {
-  'periodNetPromoterScore' : number,
-  'periodRetentionRate' : number,
-  'orgId' : OrgId,
-  'totalContracts' : bigint,
-  'periodChurnRate' : number,
-  'periodActiveContracts' : bigint,
-  'cancellationReasons' : Array<[string, bigint]>,
-  'periodCancelledContracts' : bigint,
-  'totalCancelledContracts' : bigint,
-  'periodCanceledContracts' : bigint,
-}
-export interface ChurnParams {
-  'startTime' : bigint,
-  'endTime' : bigint,
-  'orgId' : OrgId,
-}
 export interface Contact {
   'id' : string,
   'orgId' : OrgId,
@@ -49,124 +22,12 @@ export interface Contact {
   'email' : string,
   'phone' : string,
 }
-export interface Contract {
-  'id' : string,
-  'isCancelled' : boolean,
-  'endDate' : [] | [bigint],
-  'value' : bigint,
-  'orgId' : OrgId,
-  'cancellationReason' : string,
-  'name' : string,
-  'createdBy' : Principal,
-  'startDate' : bigint,
-}
-export interface Deal {
-  'id' : string,
-  'value' : bigint,
-  'orgId' : OrgId,
-  'name' : string,
-  'createdBy' : Principal,
-  'stage' : DealStage,
-}
-export type DealStage = { 'prospecting' : null } |
-  { 'closedWon' : null } |
-  { 'negotiation' : null } |
-  { 'closedLost' : null };
-export interface Document {
-  'id' : string,
-  'orgId' : OrgId,
-  'file' : ExternalBlob,
-  'name' : string,
-  'category' : DocumentCategory,
-  'uploadedAt' : bigint,
-  'uploadedBy' : Principal,
-}
-export type DocumentCategory = { 'projectDocs' : null } |
-  { 'other' : null } |
-  { 'marketing' : null } |
-  { 'legal' : null } |
-  { 'presentations' : null } |
-  { 'contracts' : null } |
-  { 'reports' : null } |
-  { 'invoices' : null } |
-  { 'proposals' : null } |
-  { 'mediaAssets' : null };
-export interface DocumentUploadInput {
-  'orgId' : OrgId,
-  'file' : ExternalBlob,
-  'name' : string,
-  'category' : DocumentCategory,
-}
-export type ExternalBlob = Uint8Array;
-export interface FinanceTransaction {
-  'id' : string,
-  'orgId' : OrgId,
-  'createdAt' : bigint,
-  'createdBy' : Principal,
-  'description' : string,
-  'amount' : bigint,
-}
-export interface NpsCampaign {
-  'id' : string,
-  'status' : string,
-  'orgId' : OrgId,
-  'name' : string,
-  'createdAt' : bigint,
-  'createdBy' : Principal,
-}
-export interface NpsResponse {
-  'orgId' : OrgId,
-  'campaignId' : string,
-  'submittedAt' : bigint,
-  'submittedBy' : Principal,
-  'score' : bigint,
-  'comment' : string,
-  'recommendReason' : string,
-  'isSuccessStory' : boolean,
-  'notRecommendReason' : string,
-  'contractId' : string,
-}
 export type OrgId = string;
 export interface Organization {
   'id' : OrgId,
   'name' : string,
   'createdAt' : bigint,
   'createdBy' : Principal,
-}
-export interface Project {
-  'id' : string,
-  'orgId' : OrgId,
-  'name' : string,
-  'createdBy' : Principal,
-  'description' : string,
-  'phase' : ProjectPhase,
-}
-export type ProjectPhase = { 'completed' : null } |
-  { 'inProgress' : null } |
-  { 'planning' : null };
-export interface Report {
-  'id' : string,
-  'orgId' : OrgId,
-  'period' : string,
-  'generatedAt' : bigint,
-  'generatedBy' : Principal,
-  'reportType' : string,
-  'format' : string,
-}
-export interface SupportMessage {
-  'id' : string,
-  'orgId' : OrgId,
-  'sentAt' : bigint,
-  'sentBy' : Principal,
-  'message' : string,
-}
-export interface TeamInvitation {
-  'id' : string,
-  'status' : string,
-  'orgId' : OrgId,
-  'invitedAt' : bigint,
-  'invitedBy' : Principal,
-  'inviteeIdentifier' : string,
 }
 export interface UserProfile {
   'appRole' : AppUserRole,
@@ -206,65 +67,22 @@ export interface _SERVICE {
   >,
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
-  'addMemberToOrg' : ActorMethod<[Principal, OrgId], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
-  'cancelContract' : ActorMethod<[string, string], undefined>,
-  'createActivity' : ActorMethod<[Activity], undefined>,
   'createContact' : ActorMethod<[Contact], undefined>,
-  'createContract' : ActorMethod<[Contract], undefined>,
-  'createDeal' : ActorMethod<[Deal], undefined>,
-  'createFinanceTransaction' : ActorMethod<[FinanceTransaction], undefined>,
-  'createNpsCampaign' : ActorMethod<[NpsCampaign], undefined>,
   'createOrganization' : ActorMethod<[string, bigint], OrgId>,
-  'createProject' : ActorMethod<[Project], undefined>,
-  'generateReport' : ActorMethod<[Report], undefined>,
-  'getActivity' : ActorMethod<[string], [] | [Activity]>,
-  'getAllSupportMessages' : ActorMethod<[], Array<SupportMessage>>,
+  'deleteContact' : ActorMethod<[string], undefined>,
+  'deleteOrganization' : ActorMethod<[OrgId], undefined>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
-  'getCancellationStats' : ActorMethod<[OrgId], Array<CancellationStats>>,
-  'getChurnOverview' : ActorMethod<[ChurnParams], ChurnOverview>,
   'getContact' : ActorMethod<[string], [] | [Contact]>,
-  'getContract' : ActorMethod<[string], [] | [Contract]>,
-  'getDeal' : ActorMethod<[string], [] | [Deal]>,
-  'getDocument' : ActorMethod<[string], [] | [Document]>,
-  'getFinanceTransaction' : ActorMethod<[string], [] | [FinanceTransaction]>,
-  'getNpsCampaign' : ActorMethod<[string], [] | [NpsCampaign]>,
-  'getNpsResponseByContract' : ActorMethod<[string], Array<NpsResponse>>,
-  'getNpsResponses' : ActorMethod<[OrgId], Array<NpsResponse>>,
-  'getNpsResponsesByCampaign' : ActorMethod<[string], Array<NpsResponse>>,
-  'getNpsResponsesExist' : ActorMethod<[OrgId], boolean>,
-  'getNpsResponsesForPeriod' : ActorMethod<
-    [OrgId, bigint, bigint],
-    Array<NpsResponse>
-  >,
-  'getNpsResponsesForTimeFrame' : ActorMethod<
-    [OrgId, string, bigint, bigint],
-    Array<NpsResponse>
-  >,
   'getOrganization' : ActorMethod<[OrgId], [] | [Organization]>,
-  'getProject' : ActorMethod<[string], [] | [Project]>,
-  'getReport' : ActorMethod<[string], [] | [Report]>,
-  'getSupportMessages' : ActorMethod<[OrgId], Array<SupportMessage>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
-  'inviteTeamMember' : ActorMethod<[TeamInvitation], undefined>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
-  'listActivities' : ActorMethod<[OrgId], Array<Activity>>,
-  'listCancelledContracts' : ActorMethod<[OrgId], Array<Contract>>,
   'listContacts' : ActorMethod<[OrgId], Array<Contact>>,
-  'listContracts' : ActorMethod<[OrgId], Array<Contract>>,
-  'listDeals' : ActorMethod<[OrgId], Array<Deal>>,
-  'listDocuments' : ActorMethod<[OrgId], Array<Document>>,
-  'listFinanceTransactions' : ActorMethod<[OrgId], Array<FinanceTransaction>>,
-  'listNpsCampaigns' : ActorMethod<[OrgId], Array<NpsCampaign>>,
-  'listOrgMembers' : ActorMethod<[OrgId], Array<Principal>>,
-  'listProjects' : ActorMethod<[OrgId], Array<Project>>,
-  'listReports' : ActorMethod<[OrgId], Array<Report>>,
-  'listTeamInvitations' : ActorMethod<[OrgId], Array<TeamInvitation>>,
+  'listOrganizations' : ActorMethod<[], Array<Organization>>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
-  'sendSupportMessage' : ActorMethod<[string, OrgId, bigint], undefined>,
-  'submitNpsResponse' : ActorMethod<[NpsResponse], undefined>,
-  'uploadDocument' : ActorMethod<[DocumentUploadInput], undefined>,
+  'updateContact' : ActorMethod<[string, string, string, string], undefined>,
+  'updateOrganization' : ActorMethod<[OrgId, string], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

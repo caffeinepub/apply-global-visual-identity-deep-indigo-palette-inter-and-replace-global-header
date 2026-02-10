@@ -1,54 +1,100 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T23:35:16.355Z",
-  "summary": "A diff implementa parte do fluxo de autenticação via Internet Identity e adiciona UX de seleção/troca de organização para papéis Firsty, além de introduzir um módulo de migração no backend. Porém, há lacunas claras na listagem/seleção de organizações em modo BACKEND (especialmente para Firsty), e alguns trechos do cliente backend ainda parecem placeholder/insuficientes para cumprir as regras de acesso e os ACs de APIs completas.",
+  "generatedAt": "2026-02-10T08:21:33.340Z",
+  "summary": "The diff adds frontend-side backend-client initialization state handling (loading/error/retry) and gates CRM contact queries/mutations on readiness, but it does not provide evidence that backend actor secret-token initialization is removed/fixed, nor that the backend implements the required member invitation/membership APIs. The new Team UI appears wired to non-existent backend methods and even states the backend is not implemented. There are also new/remaining non-English user-facing strings despite the English-text constraint.",
   "missing_requirements": [
     {
-      "id": "REQ-2",
-      "requirement": "FIRSTY_ADMIN e FIRSTY_CONSULTANT conseguem listar todas as organizações e acessar (leitura/escrita) dados por organização; e OWNER_ADMIN/MEMBER ficam restritos a uma única organização com rejeição clara ao tentar trocar/entrar em outra.",
-      "reason": "O cliente backend não implementa listagem de organizações (retorna array vazio) e inclusive comenta que o backend não expõe listOrgs. Isso impede o fluxo de seleção de organização para papéis Firsty e não demonstra suporte de backend para listar todas as organizações.",
+      "id": "REQ-1",
+      "requirement": "Fix backend actor initialization so the app does not require a missing secret token to become usable for normal authenticated users (Internet Identity).",
+      "reason": "The diff shows new frontend initialization UI and a client proxy error, but provides no evidence that the backend actor initialization no longer depends on a secret token or URL parameter; backend/main.mo changes shown are type definitions only (truncated) with no initialization/token logic visible.",
       "evidence": [
-        "frontend/src/data/api/backendClient.ts (método listOrgs retorna [])",
-        "frontend/src/pages/auth/SelectOrganizationPage.tsx (usa client.listOrgs() para seleção de organização)"
+        "backend/main.mo (truncated)",
+        "frontend/src/hooks/useStage1Client.ts",
+        "frontend/src/components/states/BackendClientInitState.tsx"
       ]
     },
     {
-      "id": "REQ-5",
-      "requirement": "Firsty roles devem conseguir ver/selecionar qualquer organização no fluxo de seleção; não-Firsty devem ver apenas sua organização; e após seleção, páginas org-scoped operam na org selecionada.",
-      "reason": "A tela de seleção depende de client.listOrgs(), mas em BACKEND mode o BackendClient.listOrgs() retorna sempre vazio, inviabilizando na prática a seleção de organizações para papéis Firsty.",
+      "id": "REQ-1",
+      "requirement": "If actor initialization fails, the UI shows a clear error state and provides a retry action instead of throwing \"Backend client not ready\" on actions.",
+      "reason": "BackendClientInitState.tsx provides an error UI with a retry button, but useStage1Client still returns a Proxy that throws an error when accessed before actor readiness, which can still surface as thrown errors during actions if any call happens before readiness.",
       "evidence": [
-        "frontend/src/data/api/backendClient.ts (listOrgs retorna [])",
-        "frontend/src/pages/auth/SelectOrganizationPage.tsx (carrega orgs via client.listOrgs())"
+        "frontend/src/hooks/useStage1Client.ts",
+        "frontend/src/components/states/BackendClientInitState.tsx"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "Make CRM contact create/update/delete reliable end-to-end by aligning frontend payloads with backend expectations (caller-derived fields handled by backend) and ensuring mutations cannot run until backend client is ready.",
+      "reason": "ContactsPage gates queries on isReady and org selection, but the diff does not show the BackendClient contact create/update/delete implementations (truncated), so there is insufficient evidence that payload alignment (e.g., not sending createdBy / backend derives it) is fully implemented end-to-end.",
+      "evidence": [
+        "frontend/src/pages/internal/ContactsPage.tsx",
+        "frontend/src/data/api/backendClient.ts (truncated)"
       ]
     },
     {
       "id": "REQ-3",
-      "requirement": "Todos os métodos que estavam stubados/\"Not implemented in backend\" no backendClient devem ter implementações funcionais no backend (ou serem removidos do frontend se não usados).",
-      "reason": "O diff mostra pelo menos uma API essencial (listOrgs) não implementada no cliente backend e com comentário indicando ausência no backend; isso viola o critério de que métodos necessários devem funcionar (especialmente os usados por telas existentes como seleção de organização).",
+      "requirement": "Backend exposes member invitation operations: create invitation (by email/identifier), list pending invitations, revoke invitation, and accept invitation (by logged-in principal).",
+      "reason": "No backend API functions for invitations/acceptance are shown; backend/main.mo diff excerpt only shows type additions (e.g., TeamInvitation) without corresponding public methods.",
       "evidence": [
-        "frontend/src/data/api/backendClient.ts (listOrgs retorna [] com comentário de ausência no backend)",
-        "frontend/src/pages/auth/SelectOrganizationPage.tsx (depende dessa API)"
+        "backend/main.mo (truncated)"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "requirement": "Backend exposes operations to list organization members (principals + profile info where available) for org admins/creators, with proper permissioning.",
+      "reason": "No evidence of backend list-members endpoints or permission checks is present in the diff summary; TeamManagementTab calls client.listOrgMembers but the backing actor methods are not shown.",
+      "evidence": [
+        "backend/main.mo (truncated)",
+        "frontend/src/pages/internal/settings/TeamManagementTab.tsx (truncated)"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "requirement": "Replace static Team/Settings UI with functional Team management UI wired to backend member/invitation APIs (invite, view pending invites, view members, revoke/remove, update role if supported).",
+      "reason": "The new TeamManagementTab includes an Alert explicitly stating backend support is not implemented yet, indicating the UI is not fully functional end-to-end. Also, remove/revoke/update-role functionality is not evidenced in the truncated content.",
+      "evidence": [
+        "frontend/src/pages/internal/settings/TeamManagementTab.tsx (truncated)",
+        "frontend/src/pages/internal/SettingsPage.tsx (truncated)"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "requirement": "Ensure profile bootstrapping works with owner-managed membership: if no backend profile, show clear next step (create profile / accept invite) appropriate to membership state; update auth state after saving profile; block org access without accepted membership.",
+      "reason": "The diff summary does not include concrete UI/flow changes demonstrating onboarding states tied to invitation acceptance/membership, nor evidence that routes/org selection are blocked based on accepted membership status (only general router/provider summaries are mentioned, without detailed diff evidence).",
+      "evidence": [
+        "frontend-file-summaries.txt (truncated)"
       ]
     }
   ],
-  "hallucinated_features": [],
-  "confidence": 0.67,
+  "hallucinated_features": [
+    {
+      "description": "User-facing Portuguese (non-English) messages and labels introduced/kept, violating the constraint to use English for any user-facing text added or modified.",
+      "reason": "The BuildRequest constraint requires English for user-facing text; the diff includes Portuguese user-facing error/toast strings (e.g., \"Categoria inválida selecionada\", \"Documento enviado com sucesso!\", \"Falha ao enviar documento\").",
+      "evidence": [
+        "frontend/src/pages/portal/DocumentsPage.tsx (truncated)",
+        "frontend-file-summaries.txt (mentions pt-BR strings and UI states in Portuguese)"
+      ]
+    },
+    {
+      "description": "Removal of mock mode / forcing BACKEND mode across the app.",
+      "reason": "The BuildRequest does not request removing mock mode; the diff summary states mock mode was completely removed and backend mode forced, which is an unrequested behavioral/architecture change.",
+      "evidence": [
+        "frontend-file-summaries.txt (frontend/src/config/dataMode.ts; frontend/src/data/client.ts)"
+      ]
+    }
+  ],
+  "confidence": 0.72,
   "changed_files": [
     "backend/main.mo",
-    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/app/layout/Topbar.tsx",
-    "frontend/src/app/router/PostAuthLanding.tsx",
-    "frontend/src/auth/AuthProvider.tsx",
-    "frontend/src/auth/InternetIdentityAuthAdapter.ts",
+    "frontend/src/components/states/BackendClientInitState.tsx",
     "frontend/src/data/api/backendClient.ts",
-    "frontend/src/data/mock/mockClient.ts",
-    "frontend/src/data/mock/seed.ts",
-    "frontend/src/org/OrgProvider.tsx",
-    "frontend/src/pages/auth/SelectOrganizationPage.tsx",
-    "frontend/src/pages/portal/MessagesPage.tsx",
-    "frontend/src/types/model.ts",
+    "frontend/src/hooks/useStage1Client.ts",
+    "frontend/src/pages/internal/ContactsPage.tsx",
+    "frontend/src/pages/internal/SettingsPage.tsx",
+    "frontend/src/pages/internal/settings/TeamManagementTab.tsx",
+    "frontend/src/pages/portal/DocumentsPage.tsx",
     "project_state.json"
   ]
 }

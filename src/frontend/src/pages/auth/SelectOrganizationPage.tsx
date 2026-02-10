@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { QueryBoundary } from '../../components/states/QueryBoundary';
 import { Building2 } from 'lucide-react';
-import { isMockMode } from '../../config/dataMode';
 import type { Organization } from '../../types/model';
 
 export default function SelectOrganizationPage() {
@@ -21,18 +20,20 @@ export default function SelectOrganizationPage() {
 
   const { data: orgs, isLoading, isError, error } = useQuery({
     queryKey: ['organizations'],
-    queryFn: () => client.listOrgs(),
-    enabled: isReady,
+    queryFn: () => {
+      if (!client) throw new Error('Client not ready');
+      return client.listOrgs();
+    },
+    enabled: isReady && !!client,
   });
 
   const handleSelect = async (org: Organization) => {
-    // In BACKEND mode, call selectOrg to update backend profile
-    if (!isMockMode()) {
-      try {
-        await client.selectOrg(org.id);
-      } catch (error) {
-        console.error('Failed to select org in backend:', error);
-      }
+    if (!client) return;
+    
+    try {
+      await client.selectOrg(org.id);
+    } catch (error) {
+      console.error('Failed to select org in backend:', error);
     }
     
     setCurrentOrg(org);

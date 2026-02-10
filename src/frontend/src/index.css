@@ -95,3 +95,19 @@
         @apply transition-opacity duration-200;
     }
 }
+
+/* Sonner toast customization - prevent click blocking */
+[data-sonner-toaster] {
+    pointer-events: none !important;
+}
+
+[data-sonner-toast] {
+    pointer-events: auto !important;
+}
+
+/* Add bottom offset on mobile to avoid blocking bottom navigation */
+@media (max-width: 640px) {
+    [data-sonner-toaster][data-y-position="bottom"] {
+        bottom: 4.5rem !important;
+    }
+}

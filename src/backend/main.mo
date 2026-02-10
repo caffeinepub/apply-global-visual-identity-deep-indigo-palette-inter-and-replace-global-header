@@ -8,9 +8,7 @@ import MixinAuthorization "authorization/MixinAuthorization";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import AccessControl "authorization/access-control";
-import Migration "migration";
 
-(with migration = Migration.run)
 actor {
   type OrgId = Text;
 
@@ -311,6 +309,13 @@ actor {
     };
   };
 
+  func getUserOrgs(user : Principal) : [OrgId] {
+    switch (orgMemberships.get(user)) {
+      case null { [] };
+      case (?orgs) { orgs };
+    };
+  };
+
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can access profiles");
@@ -335,12 +340,48 @@ actor {
       Runtime.trap("Unauthorized: Only users can save profiles");
     };
 
+    // Prevent privilege escalation - users cannot assign themselves Firsty staff roles
+    let existingProfile = userProfiles.get(caller);
+    switch (existingProfile) {
+      case null {
+        // New profile - cannot start as Firsty staff
+        switch (profile.appRole) {
+          case (#FIRSTY_ADMIN or #FIRSTY_CONSULTANT) {
+            Runtime.trap("Unauthorized: Cannot assign Firsty staff roles to yourself");
+          };
+          case (_) {};
+        };
+      };
+      case (?existing) {
+        // Existing profile - cannot change to/from Firsty staff roles unless already Firsty staff
+        let wasFirstyStaff = switch (existing.appRole) {
+          case (#FIRSTY_ADMIN or #FIRSTY_CONSULTANT) { true };
+          case (_) { false };
+        };
+        let isNowFirstyStaff = switch (profile.appRole) {
+          case (#FIRSTY_ADMIN or #FIRSTY_CONSULTANT) { true };
+          case (_) { false };
+        };
+        if (wasFirstyStaff != isNowFirstyStaff and not wasFirstyStaff) {
+          Runtime.trap("Unauthorized: Cannot assign Firsty staff roles to yourself");
+        };
+      };
+    };
+
     // Verify role constraints
     switch (profile.appRole) {
       case (#OWNER_ADMIN or #MEMBER) {
         // Must have exactly one organization
-        if (profile.currentOrgId == null) {
-          Runtime.trap("OWNER_ADMIN and MEMBER must belong to an organization");
+        switch (profile.currentOrgId) {
+          case null {
+            Runtime.trap("OWNER_ADMIN and MEMBER must belong to an organization");
+          };
+          case (?orgId) {
+            // Verify user is actually a member of this organization
+            if (not isMemberOfOrg(caller, orgId)) {
+              Runtime.trap("Cannot set currentOrgId to an organization you are not a member of");
+            };
+          };
         };
       };
       case (#FIRSTY_ADMIN or #FIRSTY_CONSULTANT) {
@@ -381,6 +422,65 @@ actor {
     organizations.get(orgId);
   };
 
+  public query ({ caller }) func listOrganizations() : async [Organization] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can list organizations");
+    };
+
+    // Firsty staff can see all organizations
+    if (isFirstyStaff(caller)) {
+      return organizations.values().toArray();
+    };
+
+    // Regular users can only see their organizations
+    let userOrgs = getUserOrgs(caller);
+    let orgsIter = organizations.values();
+    let filteredIter = orgsIter.filter(func(org) {
+      for (userOrg in userOrgs.values()) {
+        if (org.id == userOrg) { return true };
+      };
+      false;
+    });
+    filteredIter.toArray();
+  };
+
+  public shared ({ caller }) func updateOrganization(orgId : OrgId, name : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can update organizations");
+    };
+    verifyOrgManagementAccess(caller, orgId);
+
+    let org = switch (organizations.get(orgId)) {
+      case (null) { Runtime.trap("Organization not found") };
+      case (?o) { o };
+    };
+
+    let updatedOrg = {
+      org with name = name;
+    };
+    organizations.add(orgId, updatedOrg);
+  };
+
+  public shared ({ caller }) func deleteOrganization(orgId : OrgId) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can delete organizations");
+    };
+    verifyOrgManagementAccess(caller, orgId);
+
+    // Remove organization
+    organizations.remove(orgId);
+
+    // Remove all memberships for this organization
+    for ((user, orgs) in orgMemberships.entries()) {
+      let filteredOrgs = orgs.filter(func(org) { org != orgId });
+      if (filteredOrgs.size() > 0) {
+        orgMemberships.add(user, filteredOrgs);
+      } else {
+        orgMemberships.remove(user);
+      };
+    };
+  };
+
   public shared ({ caller }) func createContact(contact : Contact) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can create contacts");
@@ -390,6 +490,41 @@ actor {
       Runtime.trap("Unauthorized: Cannot create contact for another user");
     };
     contacts.add(contact.id, contact);
+  };
+
+  public shared ({ caller }) func updateContact(id : Text, name : Text, email : Text, phone : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can update contacts");
+    };
+
+    let contact = switch (contacts.get(id)) {
+      case (null) { Runtime.trap("Contact not found") };
+      case (?c) { c };
+    };
+
+    verifyDataEditAccess(caller, contact.orgId);
+
+    let updatedContact = {
+      contact with
+      name = name;
+      email = email;
+      phone = phone;
+    };
+    contacts.add(id, updatedContact);
+  };
+
+  public shared ({ caller }) func deleteContact(id : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can delete contacts");
+    };
+
+    let contact = switch (contacts.get(id)) {
+      case (null) { Runtime.trap("Contact not found") };
+      case (?c) { c };
+    };
+
+    verifyDataEditAccess(caller, contact.orgId);
+    contacts.remove(id);
   };
 
   public query ({ caller }) func getContact(id : Text) : async ?Contact {
@@ -413,627 +548,5 @@ actor {
     let contactsIter = contacts.values();
     let filteredIter = contactsIter.filter(func(contact) { contact.orgId == orgId });
     filteredIter.toArray();
-  };
-
-  public shared ({ caller }) func createProject(project : Project) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can create projects");
-    };
-    verifyDataEditAccess(caller, project.orgId);
-    if (project.createdBy != caller) {
-      Runtime.trap("Unauthorized: Cannot create project for another user");
-    };
-    projects.add(project.id, project);
-  };
-
-  public query ({ caller }) func getProject(id : Text) : async ?Project {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view projects");
-    };
-    switch (projects.get(id)) {
-      case null { null };
-      case (?project) {
-        verifyOrgAccess(caller, project.orgId);
-        ?project;
-      };
-    };
-  };
-
-  public query ({ caller }) func listProjects(orgId : OrgId) : async [Project] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can list projects");
-    };
-    verifyOrgAccess(caller, orgId);
-    let projectsIter = projects.values();
-    let filteredIter = projectsIter.filter(func(project) { project.orgId == orgId });
-    filteredIter.toArray();
-  };
-
-  public shared ({ caller }) func createDeal(deal : Deal) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can create deals");
-    };
-    verifyDataEditAccess(caller, deal.orgId);
-    if (deal.createdBy != caller) {
-      Runtime.trap("Unauthorized: Cannot create deal for another user");
-    };
-    deals.add(deal.id, deal);
-  };
-
-  public query ({ caller }) func getDeal(id : Text) : async ?Deal {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view deals");
-    };
-    switch (deals.get(id)) {
-      case null { null };
-      case (?deal) {
-        verifyOrgAccess(caller, deal.orgId);
-        ?deal;
-      };
-    };
-  };
-
-  public query ({ caller }) func listDeals(orgId : OrgId) : async [Deal] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can list deals");
-    };
-    verifyOrgAccess(caller, orgId);
-    let dealsIter = deals.values();
-    let filteredIter = dealsIter.filter(func(deal) { deal.orgId == orgId });
-    filteredIter.toArray();
-  };
-
-  public shared ({ caller }) func createActivity(activity : Activity) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can create activities");
-    };
-    verifyDataEditAccess(caller, activity.orgId);
-    if (activity.createdBy != caller) {
-      Runtime.trap("Unauthorized: Cannot create activity for another user");
-    };
-    activities.add(activity.id, activity);
-  };
-
-  public query ({ caller }) func getActivity(id : Text) : async ?Activity {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view activities");
-    };
-    switch (activities.get(id)) {
-      case null { null };
-      case (?activity) {
-        verifyOrgAccess(caller, activity.orgId);
-        ?activity;
-      };
-    };
-  };
-
-  public query ({ caller }) func listActivities(orgId : OrgId) : async [Activity] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can list activities");
-    };
-    verifyOrgAccess(caller, orgId);
-    let activitiesIter = activities.values();
-    let filteredIter = activitiesIter.filter(func(activity) { activity.orgId == orgId });
-    filteredIter.toArray();
-  };
-
-  public shared ({ caller }) func createContract(contract : Contract) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can create contracts");
-    };
-    verifyDataEditAccess(caller, contract.orgId);
-    if (contract.createdBy != caller) {
-      Runtime.trap("Unauthorized: Cannot create contract for another user");
-    };
-    contracts.add(contract.id, contract);
-  };
-
-  public shared ({ caller }) func cancelContract(contractId : Text, cancellationReason : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can cancel contracts");
-    };
-    let contract = switch (contracts.get(contractId)) {
-      case (null) { Runtime.trap("Contract not found") };
-      case (?c) { c };
-    };
-    verifyDataEditAccess(caller, contract.orgId);
-    let updatedContract = {
-      contract with
-      isCancelled = true;
-      cancellationReason;
-    };
-    contracts.add(contractId, updatedContract);
-  };
-
-  public query ({ caller }) func getContract(id : Text) : async ?Contract {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view contracts");
-    };
-    switch (contracts.get(id)) {
-      case null { null };
-      case (?contract) {
-        verifyOrgAccess(caller, contract.orgId);
-        ?contract;
-      };
-    };
-  };
-
-  public query ({ caller }) func listContracts(orgId : OrgId) : async [Contract] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can list contracts");
-    };
-    verifyOrgAccess(caller, orgId);
-    let contractsIter = contracts.values();
-    let filteredIter = contractsIter.filter(func(contract) { contract.orgId == orgId });
-    filteredIter.toArray();
-  };
-
-  public query ({ caller }) func listCancelledContracts(orgId : OrgId) : async [Contract] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can list contracts");
-    };
-    verifyOrgAccess(caller, orgId);
-    let contractsIter = contracts.values();
-    let filteredIter = contractsIter.filter(func(contract) {
-      contract.orgId == orgId and contract.isCancelled;
-    });
-    filteredIter.toArray();
-  };
-
-  public query ({ caller }) func getCancellationStats(orgId : OrgId) : async [CancellationStats] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view cancellation stats");
-    };
-    verifyOrgAccess(caller, orgId);
-
-    let cancellations = contracts.values().filter(func(c) { c.orgId == orgId and c.isCancelled }).toArray();
-
-    let stats = Map.empty<Text, Nat>();
-    for (c in cancellations.values()) {
-      let count = switch (stats.get(c.cancellationReason)) {
-        case (null) { 0 };
-        case (?n) { n };
-      };
-      stats.add(c.cancellationReason, count + 1);
-    };
-
-    let output : [CancellationStats] = switch (stats.size()) {
-      case (0) { [] };
-      case (_) {
-        stats.entries().map<(Text, Nat), CancellationStats>(
-          func((reason, count)) { { reason; count } }
-        ).toArray();
-      };
-    };
-    output;
-  };
-
-  public shared ({ caller }) func createFinanceTransaction(transaction : FinanceTransaction) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can create finance transactions");
-    };
-    verifyDataEditAccess(caller, transaction.orgId);
-    if (transaction.createdBy != caller) {
-      Runtime.trap("Unauthorized: Cannot create finance transaction for another user");
-    };
-    financeTransactions.add(transaction.id, transaction);
-  };
-
-  public query ({ caller }) func getFinanceTransaction(id : Text) : async ?FinanceTransaction {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view finance transactions");
-    };
-    switch (financeTransactions.get(id)) {
-      case null { null };
-      case (?transaction) {
-        verifyOrgAccess(caller, transaction.orgId);
-        ?transaction;
-      };
-    };
-  };
-
-  public query ({ caller }) func listFinanceTransactions(orgId : OrgId) : async [FinanceTransaction] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can list finance transactions");
-    };
-    verifyOrgAccess(caller, orgId);
-    let financeIter = financeTransactions.values();
-    let filteredIter = financeIter.filter(func(transaction) { transaction.orgId == orgId });
-    filteredIter.toArray();
-  };
-
-  public shared ({ caller }) func uploadDocument(input : DocumentUploadInput) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can upload documents");
-    };
-    verifyDataEditAccess(caller, input.orgId);
-
-    let newDocument : Document = {
-      id = input.name;
-      file = input.file;
-      name = input.name;
-      uploadedBy = caller;
-      orgId = input.orgId;
-      uploadedAt = 0;
-      category = input.category;
-    };
-
-    documents.add(newDocument.id, newDocument);
-  };
-
-  public query ({ caller }) func getDocument(id : Text) : async ?Document {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view documents");
-    };
-    switch (documents.get(id)) {
-      case null { null };
-      case (?document) {
-        verifyOrgAccess(caller, document.orgId);
-        ?document;
-      };
-    };
-  };
-
-  public query ({ caller }) func listDocuments(orgId : OrgId) : async [Document] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can list documents");
-    };
-    verifyOrgAccess(caller, orgId);
-    let documentsIter = documents.values();
-    let filteredIter = documentsIter.filter(func(document) { document.orgId == orgId });
-    filteredIter.toArray();
-  };
-
-  public shared ({ caller }) func createNpsCampaign(campaign : NpsCampaign) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can create NPS campaigns");
-    };
-    verifyDataEditAccess(caller, campaign.orgId);
-    if (campaign.createdBy != caller) {
-      Runtime.trap("Unauthorized: Cannot create NPS campaign for another user");
-    };
-    npsCampaigns.add(campaign.id, campaign);
-  };
-
-  public query ({ caller }) func getNpsCampaign(id : Text) : async ?NpsCampaign {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view NPS campaigns");
-    };
-    switch (npsCampaigns.get(id)) {
-      case null { null };
-      case (?campaign) {
-        verifyOrgAccess(caller, campaign.orgId);
-        ?campaign;
-      };
-    };
-  };
-
-  public query ({ caller }) func listNpsCampaigns(orgId : OrgId) : async [NpsCampaign] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can list NPS campaigns");
-    };
-    verifyOrgAccess(caller, orgId);
-    let campaignsIter = npsCampaigns.values();
-    let filteredIter = campaignsIter.filter(func(campaign) { campaign.orgId == orgId });
-    filteredIter.toArray();
-  };
-
-  public shared ({ caller }) func submitNpsResponse(response : NpsResponse) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can submit NPS responses");
-    };
-    verifyDataEditAccess(caller, response.orgId);
-    if (response.submittedBy != caller) {
-      Runtime.trap("Unauthorized: Cannot submit NPS response for another user");
-    };
-    npsResponses.add(response.campaignId, response);
-  };
-
-  public query ({ caller }) func getNpsResponses(orgId : OrgId) : async [NpsResponse] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view NPS responses");
-    };
-    verifyOrgAccess(caller, orgId);
-
-    let npsResponsesIter = npsResponses.values();
-    let filteredIter = npsResponsesIter.filter(func(response) { response.orgId == orgId });
-    filteredIter.toArray();
-  };
-
-  public query ({ caller }) func getNpsResponsesForPeriod(orgId : OrgId, startTime : Int, endTime : Int) : async [NpsResponse] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view NPS responses");
-    };
-    verifyOrgAccess(caller, orgId);
-    let npsResponsesIter = npsResponses.values();
-    let filteredIter = npsResponsesIter.filter(func(response) {
-      response.orgId == orgId and response.submittedAt >= startTime and response.submittedAt <= endTime
-    });
-    filteredIter.toArray();
-  };
-
-  public query ({ caller }) func getNpsResponsesForTimeFrame(
-    orgId : OrgId,
-    campaignId : Text,
-    startTime : Int,
-    endTime : Int,
-  ) : async [NpsResponse] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view NPS responses");
-    };
-    verifyOrgAccess(caller, orgId);
-    let npsResponsesIter = npsResponses.values();
-    let filteredIter = npsResponsesIter.filter(func(response) {
-      response.campaignId == campaignId and
-      response.orgId == orgId and response.submittedAt >= startTime and response.submittedAt <= endTime
-    });
-    filteredIter.toArray();
-  };
-
-  public query ({ caller }) func getNpsResponsesByCampaign(campaignId : Text) : async [NpsResponse] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view NPS responses");
-    };
-
-    // Verify caller has access to the campaign's organization
-    let campaign = switch (npsCampaigns.get(campaignId)) {
-      case (null) { Runtime.trap("Campaign not found") };
-      case (?c) { c };
-    };
-    verifyOrgAccess(caller, campaign.orgId);
-
-    let npsResponsesIter = npsResponses.values();
-    let filteredIter = npsResponsesIter.filter(func(response) { response.campaignId == campaignId });
-    filteredIter.toArray();
-  };
-
-  public query ({ caller }) func getNpsResponseByContract(contractId : Text) : async [NpsResponse] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view NPS responses");
-    };
-
-    // Verify caller has access to the contract's organization
-    let contract = switch (contracts.get(contractId)) {
-      case (null) { Runtime.trap("Contract not found") };
-      case (?c) { c };
-    };
-    verifyOrgAccess(caller, contract.orgId);
-
-    let npsResponsesIter = npsResponses.values();
-    let filteredIter = npsResponsesIter.filter(func(response) { response.contractId == contractId });
-    filteredIter.toArray();
-  };
-
-  public query ({ caller }) func getNpsResponsesExist(orgId : OrgId) : async Bool {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can query NPS existence");
-    };
-    verifyOrgAccess(caller, orgId);
-
-    let npsResponsesIter = npsResponses.values();
-    let filteredIter = npsResponsesIter.filter(func(response) { response.orgId == orgId });
-    switch (filteredIter.next()) {
-      case (null) { false };
-      case (_) { true };
-    };
-  };
-
-  public shared ({ caller }) func generateReport(report : Report) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can generate reports");
-    };
-    verifyDataEditAccess(caller, report.orgId);
-    if (report.generatedBy != caller) {
-      Runtime.trap("Unauthorized: Cannot generate report for another user");
-    };
-    reports.add(report.id, report);
-  };
-
-  public query ({ caller }) func getReport(id : Text) : async ?Report {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view reports");
-    };
-    switch (reports.get(id)) {
-      case null { null };
-      case (?report) {
-        verifyOrgAccess(caller, report.orgId);
-        ?report;
-      };
-    };
-  };
-
-  public query ({ caller }) func listReports(orgId : OrgId) : async [Report] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can list reports");
-    };
-    verifyOrgAccess(caller, orgId);
-    let reportsIter = reports.values();
-    let filteredIter = reportsIter.filter(func(report) { report.orgId == orgId });
-    filteredIter.toArray();
-  };
-
-  public shared ({ caller }) func inviteTeamMember(invitation : TeamInvitation) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can invite team members");
-    };
-    verifyOrgManagementAccess(caller, invitation.orgId);
-    if (invitation.invitedBy != caller) {
-      Runtime.trap("Unauthorized: Cannot create invitation for another user");
-    };
-    teamInvitations.add(invitation.id, invitation);
-  };
-
-  public query ({ caller }) func listTeamInvitations(orgId : OrgId) : async [TeamInvitation] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can list team invitations");
-    };
-    verifyOrgAccess(caller, orgId);
-    let invitationsIter = teamInvitations.values();
-    let filteredIter = invitationsIter.filter(func(invitation) { invitation.orgId == orgId });
-    filteredIter.toArray();
-  };
-
-  public shared ({ caller }) func addMemberToOrg(user : Principal, orgId : OrgId) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can add members to organizations");
-    };
-    verifyOrgManagementAccess(caller, orgId);
-
-    let currentOrgs = switch (orgMemberships.get(user)) {
-      case null { [] };
-      case (?orgs) { orgs };
-    };
-    orgMemberships.add(user, currentOrgs.concat([orgId]));
-  };
-
-  public query ({ caller }) func listOrgMembers(orgId : OrgId) : async [Principal] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can list organization members");
-    };
-    verifyOrgAccess(caller, orgId);
-
-    let members = Map.empty<Principal, Bool>();
-    for ((user, orgs) in orgMemberships.entries()) {
-      for (org in orgs.values()) {
-        if (org == orgId) {
-          members.add(user, true);
-        };
-      };
-    };
-    members.keys().toArray();
-  };
-
-  public query ({ caller }) func getChurnOverview(params : ChurnParams) : async ChurnOverview {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can query org churn");
-    };
-    verifyOrgAccess(caller, params.orgId);
-
-    let contractsIter = contracts.values();
-    let orgContractsIter = contractsIter.filter(func(c) { c.orgId == params.orgId });
-    let orgContracts = orgContractsIter.toArray();
-
-    let totalContracts = orgContracts.size();
-    let totalCancelledContracts = orgContracts.filter(func(c) { c.isCancelled }).size();
-
-    let periodContractsIter = orgContracts.values().filter(func(c) {
-      c.startDate <= params.endTime and
-      (switch (c.endDate) {
-        case (?e) { e >= params.startTime };
-        case (null) { true };
-      });
-    });
-    let periodContracts = periodContractsIter.toArray();
-    let periodCancelledContracts = periodContracts.filter(func(c) { c.isCancelled }).size();
-    let periodCanceledContracts = periodCancelledContracts;
-    let periodActiveContracts = periodContracts.filter(func(c) { not c.isCancelled }).size();
-
-    let periodRetentionRate : Float = if (periodContracts.size() == 0) {
-      1.0;
-    } else {
-      periodActiveContracts.toFloat() / periodContracts.size().toFloat();
-    };
-
-    let periodChurnRate : Float = if (periodContracts.size() == 0) {
-      0.0;
-    } else {
-      periodCanceledContracts.toFloat() / periodContracts.size().toFloat();
-    };
-
-    let npsResponsesIter = npsResponses.values();
-    let periodNpsResponsesIter = npsResponsesIter.filter(func(r) {
-      r.orgId == params.orgId and r.submittedAt >= params.startTime and r.submittedAt <= params.endTime
-    });
-    let periodNpsResponses = periodNpsResponsesIter.toArray();
-    let periodNetPromoterScore : Float = if (periodNpsResponses.size() == 0) {
-      0.0;
-    } else {
-      let sum = periodNpsResponses.values().foldLeft(
-        0,
-        func(acc, response) { acc + response.score },
-      );
-      sum.toFloat() / periodNpsResponses.size().toFloat();
-    };
-
-    let orgCancellationsIter = orgContractsIter.filter(func(c) { c.isCancelled });
-    let orgCancellations = orgCancellationsIter.toArray();
-    let cancellationStats = Map.empty<Text, Nat>();
-    for (c in orgCancellations.values()) {
-      let count = switch (cancellationStats.get(c.cancellationReason)) {
-        case (null) { 0 };
-        case (?n) { n };
-      };
-      cancellationStats.add(c.cancellationReason, count + 1);
-    };
-
-    let cancellationReasons = switch (cancellationStats.size()) {
-      case (0) { [] };
-      case (_) {
-        cancellationStats.entries().toArray();
-      };
-    };
-
-    {
-      orgId = params.orgId;
-      totalContracts;
-      totalCancelledContracts;
-      cancellationReasons;
-      periodCancelledContracts;
-      periodCanceledContracts;
-      periodActiveContracts;
-      periodRetentionRate;
-      periodChurnRate;
-      periodNetPromoterScore;
-    };
-  };
-
-  // Support messaging functions
-  public shared ({ caller }) func sendSupportMessage(message : Text, orgId : OrgId, timestamp : Int) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can send support messages");
-    };
-    verifyOrgAccess(caller, orgId);
-
-    let messageId = caller.toText() # "-" # Int.toText(timestamp);
-    let supportMessage : SupportMessage = {
-      id = messageId;
-      orgId = orgId;
-      message = message;
-      sentBy = caller;
-      sentAt = timestamp;
-    };
-    supportMessages.add(messageId, supportMessage);
-  };
-
-  public query ({ caller }) func getSupportMessages(orgId : OrgId) : async [SupportMessage] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view support messages");
-    };
-
-    // Firsty staff can see all organizations' messages
-    if (isFirstyStaff(caller)) {
-      let messagesIter = supportMessages.values();
-      let filteredIter = messagesIter.filter(func(msg) { msg.orgId == orgId });
-      return filteredIter.toArray();
-    };
-
-    // Regular users can only see their own organization's messages
-    verifyOrgAccess(caller, orgId);
-    let messagesIter = supportMessages.values();
-    let filteredIter = messagesIter.filter(func(msg) { msg.orgId == orgId });
-    filteredIter.toArray();
-  };
-
-  public query ({ caller }) func getAllSupportMessages() : async [SupportMessage] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view support messages");
-    };
-
-    // Only Firsty staff can see all support messages across all organizations
-    if (not isFirstyStaff(caller)) {
-      Runtime.trap("Unauthorized: Only Firsty staff can view all support messages");
-    };
-
-    supportMessages.values().toArray();
   };
 };

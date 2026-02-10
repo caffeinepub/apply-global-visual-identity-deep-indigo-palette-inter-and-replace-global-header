@@ -8,46 +8,51 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { isMockMode } from '../../config/dataMode';
 
 export default function CreateOrganizationPage() {
-  const [name, setName] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
-  const { client } = useStage1Client();
+  const { client, isReady } = useStage1Client();
   const { setCurrentOrg } = useCurrentOrg();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [name, setName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!name.trim()) {
-      toast.error('Digite o nome da organização');
+      toast.error('Por favor, insira um nome para a organização');
       return;
     }
 
-    setIsCreating(true);
+    if (!client) {
+      toast.error('Sistema não está pronto. Aguarde...');
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       const org = await client.createOrg(name.trim());
       
-      // In BACKEND mode, call selectOrg to update backend auth context
-      if (!isMockMode()) {
-        try {
-          await client.selectOrg(org.id);
-        } catch (error) {
-          console.error('Failed to select org in backend:', error);
-        }
+      // In BACKEND mode, call selectOrg to update backend profile
+      try {
+        await client.selectOrg(org.id);
+      } catch (error) {
+        console.error('Failed to select org in backend:', error);
       }
       
       setCurrentOrg(org);
+      
+      // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['organizations'] });
+      
       toast.success('Organização criada com sucesso!');
       navigate({ to: '/dashboard' });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao criar organização:', error);
-      toast.error('Erro ao criar organização');
+      toast.error(error.message || 'Erro ao criar organização');
     } finally {
-      setIsCreating(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -55,9 +60,9 @@ export default function CreateOrganizationPage() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Criar Organização</CardTitle>
+          <CardTitle className="text-2xl font-semibold">Criar Organização</CardTitle>
           <CardDescription>
-            Crie sua primeira organização para começar
+            Crie sua organização para começar a usar o sistema
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -69,11 +74,15 @@ export default function CreateOrganizationPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Minha Empresa"
-                disabled={isCreating}
+                disabled={isSubmitting || !isReady}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isCreating}>
-              {isCreating ? 'Criando...' : 'Criar Organização'}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isSubmitting || !isReady || !name.trim()}
+            >
+              {isSubmitting ? 'Criando...' : 'Criar Organização'}
             </Button>
           </form>
         </CardContent>

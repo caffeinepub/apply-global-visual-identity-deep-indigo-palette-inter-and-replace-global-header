@@ -1,13 +1,14 @@
 # Specification
 
 ## Summary
-**Goal:** Tornar o app totalmente funcional em modo BACKEND, com autenticação via Internet Identity, persistência durável (upgrade-safe) e controle de acesso por organização baseado em papéis (incluindo acesso global da Firsty).
+**Goal:** Restore reliable actor initialization and authorization so logged-in users can manage CRM contacts and owner-managed organization members (invitations/membership) without “client not ready” failures.
 
 **Planned changes:**
-- Implementar persistência durável (resistente a upgrades) para todas as coleções do backend atualmente mantidas em memória, cobrindo organizações, perfis de usuário, memberships e todas as entidades do app (CRM, financeiro, NPS, documentos, relatórios, convites e mensagens de suporte).
-- Adicionar gerenciamento de organizações e memberships no backend com regras de acesso: OWNER_ADMIN/MEMBER vinculados a uma única organização; FIRSTY_ADMIN/FIRSTY_CONSULTANT com acesso (leitura/escrita) a todas as organizações.
-- Implementar no backend as APIs necessárias para o cliente de dados existente persistir as entidades do app (CRUD conforme aplicável), removendo/evitando caminhos “Not implemented in backend”.
-- Persistir e rotear mensagens de suporte por organização, permitindo que usuários da organização vejam apenas seu próprio thread e que papéis Firsty listem e respondam threads de todas as organizações.
-- Atualizar a integração do frontend em modo BACKEND para obter autenticação e contexto de papel/organização a partir do backend (Internet Identity + role context) e incluir um seletor/filtro de organização para papéis Firsty, aplicando a seleção a todas as telas com dados por organização.
+- Fix backend actor initialization to work for normal Internet Identity users without requiring any missing/invalid secret token, and prevent the UI from getting stuck in a permanent “client not ready” state.
+- Add clear frontend error + retry handling when actor initialization fails, and gate contact/member mutations until the backend client is ready.
+- Align CRM contact create/update/delete payloads with backend expectations (derive caller-based fields in the backend) and refresh the contact list automatically after mutations.
+- Implement owner-managed organization membership in the backend: create/list/revoke invitations, accept invitation by logged-in principal, and list members with proper permission checks.
+- Replace the static Team/Settings UI with a functional Team management UI wired to member/invitation APIs (invite, view members, view pending invites, revoke/remove, update role if supported).
+- Update onboarding/profile bootstrapping so users without profiles or without accepted membership see a clear next step (accept invite / create profile) and auth/protected routes update correctly after completion.
 
-**User-visible outcome:** Em modo BACKEND, usuários autenticam com Internet Identity; dados continuam disponíveis após upgrades; usuários comuns operam apenas na própria organização, enquanto perfis Firsty conseguem visualizar/selecionar qualquer organização e ler/editar dados e mensagens de suporte entre organizações.
+**User-visible outcome:** After logging in with Internet Identity, users can reliably create/update/delete CRM contacts, and organization admins/owners can invite and manage members via the Team page; invited users can accept invitations, complete profile setup when eligible, and access org pages according to membership/role without manual refreshes.

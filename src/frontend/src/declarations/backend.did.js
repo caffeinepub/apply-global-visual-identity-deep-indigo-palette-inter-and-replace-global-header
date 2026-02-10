@@ -19,21 +19,12 @@ export const _CaffeineStorageRefillResult = IDL.Record({
   'success' : IDL.Opt(IDL.Bool),
   'topped_up_amount' : IDL.Opt(IDL.Nat),
 });
-export const OrgId = IDL.Text;
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
-export const Activity = IDL.Record({
-  'id' : IDL.Text,
-  'orgId' : OrgId,
-  'relatedProject' : IDL.Opt(IDL.Text),
-  'name' : IDL.Text,
-  'createdBy' : IDL.Principal,
-  'completed' : IDL.Bool,
-  'dueDate' : IDL.Opt(IDL.Int),
-});
+export const OrgId = IDL.Text;
 export const Contact = IDL.Record({
   'id' : IDL.Text,
   'orgId' : OrgId,
@@ -41,76 +32,6 @@ export const Contact = IDL.Record({
   'createdBy' : IDL.Principal,
   'email' : IDL.Text,
   'phone' : IDL.Text,
-});
-export const Contract = IDL.Record({
-  'id' : IDL.Text,
-  'isCancelled' : IDL.Bool,
-  'endDate' : IDL.Opt(IDL.Int),
-  'value' : IDL.Nat,
-  'orgId' : OrgId,
-  'cancellationReason' : IDL.Text,
-  'name' : IDL.Text,
-  'createdBy' : IDL.Principal,
-  'startDate' : IDL.Int,
-});
-export const DealStage = IDL.Variant({
-  'prospecting' : IDL.Null,
-  'closedWon' : IDL.Null,
-  'negotiation' : IDL.Null,
-  'closedLost' : IDL.Null,
-});
-export const Deal = IDL.Record({
-  'id' : IDL.Text,
-  'value' : IDL.Nat,
-  'orgId' : OrgId,
-  'name' : IDL.Text,
-  'createdBy' : IDL.Principal,
-  'stage' : DealStage,
-});
-export const FinanceTransaction = IDL.Record({
-  'id' : IDL.Text,
-  'orgId' : OrgId,
-  'createdAt' : IDL.Int,
-  'createdBy' : IDL.Principal,
-  'description' : IDL.Text,
-  'amount' : IDL.Nat,
-});
-export const NpsCampaign = IDL.Record({
-  'id' : IDL.Text,
-  'status' : IDL.Text,
-  'orgId' : OrgId,
-  'name' : IDL.Text,
-  'createdAt' : IDL.Int,
-  'createdBy' : IDL.Principal,
-});
-export const ProjectPhase = IDL.Variant({
-  'completed' : IDL.Null,
-  'inProgress' : IDL.Null,
-  'planning' : IDL.Null,
-});
-export const Project = IDL.Record({
-  'id' : IDL.Text,
-  'orgId' : OrgId,
-  'name' : IDL.Text,
-  'createdBy' : IDL.Principal,
-  'description' : IDL.Text,
-  'phase' : ProjectPhase,
-});
-export const Report = IDL.Record({
-  'id' : IDL.Text,
-  'orgId' : OrgId,
-  'period' : IDL.Text,
-  'generatedAt' : IDL.Int,
-  'generatedBy' : IDL.Principal,
-  'reportType' : IDL.Text,
-  'format' : IDL.Text,
-});
-export const SupportMessage = IDL.Record({
-  'id' : IDL.Text,
-  'orgId' : OrgId,
-  'sentAt' : IDL.Int,
-  'sentBy' : IDL.Principal,
-  'message' : IDL.Text,
 });
 export const AppUserRole = IDL.Variant({
   'FIRSTY_CONSULTANT' : IDL.Null,
@@ -125,80 +46,11 @@ export const UserProfile = IDL.Record({
   'lastName' : IDL.Text,
   'firstName' : IDL.Text,
 });
-export const CancellationStats = IDL.Record({
-  'count' : IDL.Nat,
-  'reason' : IDL.Text,
-});
-export const ChurnParams = IDL.Record({
-  'startTime' : IDL.Int,
-  'endTime' : IDL.Int,
-  'orgId' : OrgId,
-});
-export const ChurnOverview = IDL.Record({
-  'periodNetPromoterScore' : IDL.Float64,
-  'periodRetentionRate' : IDL.Float64,
-  'orgId' : OrgId,
-  'totalContracts' : IDL.Nat,
-  'periodChurnRate' : IDL.Float64,
-  'periodActiveContracts' : IDL.Nat,
-  'cancellationReasons' : IDL.Vec(IDL.Tuple(IDL.Text, IDL.Nat)),
-  'periodCancelledContracts' : IDL.Nat,
-  'totalCancelledContracts' : IDL.Nat,
-  'periodCanceledContracts' : IDL.Nat,
-});
-export const ExternalBlob = IDL.Vec(IDL.Nat8);
-export const DocumentCategory = IDL.Variant({
-  'projectDocs' : IDL.Null,
-  'other' : IDL.Null,
-  'marketing' : IDL.Null,
-  'legal' : IDL.Null,
-  'presentations' : IDL.Null,
-  'contracts' : IDL.Null,
-  'reports' : IDL.Null,
-  'invoices' : IDL.Null,
-  'proposals' : IDL.Null,
-  'mediaAssets' : IDL.Null,
-});
-export const Document = IDL.Record({
-  'id' : IDL.Text,
-  'orgId' : OrgId,
-  'file' : ExternalBlob,
-  'name' : IDL.Text,
-  'category' : DocumentCategory,
-  'uploadedAt' : IDL.Int,
-  'uploadedBy' : IDL.Principal,
-});
-export const NpsResponse = IDL.Record({
-  'orgId' : OrgId,
-  'campaignId' : IDL.Text,
-  'submittedAt' : IDL.Int,
-  'submittedBy' : IDL.Principal,
-  'score' : IDL.Nat,
-  'comment' : IDL.Text,
-  'recommendReason' : IDL.Text,
-  'isSuccessStory' : IDL.Bool,
-  'notRecommendReason' : IDL.Text,
-  'contractId' : IDL.Text,
-});
 export const Organization = IDL.Record({
   'id' : OrgId,
   'name' : IDL.Text,
   'createdAt' : IDL.Int,
   'createdBy' : IDL.Principal,
-});
-export const TeamInvitation = IDL.Record({
-  'id' : IDL.Text,
-  'status' : IDL.Text,
-  'orgId' : OrgId,
-  'invitedAt' : IDL.Int,
-  'invitedBy' : IDL.Principal,
-  'inviteeIdentifier' : IDL.Text,
-});
-export const DocumentUploadInput = IDL.Record({
-  'orgId' : OrgId,
-  'file' : ExternalBlob,
-  'name' : IDL.Text,
-  'category' : DocumentCategory,
 });
 
 export const idlService = IDL.Service({
@@ -229,99 +81,26 @@ export const idlService = IDL.Service({
     ),
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-  'addMemberToOrg' : IDL.Func([IDL.Principal, OrgId], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-  'cancelContract' : IDL.Func([IDL.Text, IDL.Text], [], []),
-  'createActivity' : IDL.Func([Activity], [], []),
   'createContact' : IDL.Func([Contact], [], []),
-  'createContract' : IDL.Func([Contract], [], []),
-  'createDeal' : IDL.Func([Deal], [], []),
-  'createFinanceTransaction' : IDL.Func([FinanceTransaction], [], []),
-  'createNpsCampaign' : IDL.Func([NpsCampaign], [], []),
   'createOrganization' : IDL.Func([IDL.Text, IDL.Int], [OrgId], []),
-  'createProject' : IDL.Func([Project], [], []),
-  'generateReport' : IDL.Func([Report], [], []),
-  'getActivity' : IDL.Func([IDL.Text], [IDL.Opt(Activity)], ['query']),
-  'getAllSupportMessages' : IDL.Func([], [IDL.Vec(SupportMessage)], ['query']),
+  'deleteContact' : IDL.Func([IDL.Text], [], []),
+  'deleteOrganization' : IDL.Func([OrgId], [], []),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-  'getCancellationStats' : IDL.Func(
-      [OrgId],
-      [IDL.Vec(CancellationStats)],
-      ['query'],
-    ),
-  'getChurnOverview' : IDL.Func([ChurnParams], [ChurnOverview], ['query']),
   'getContact' : IDL.Func([IDL.Text], [IDL.Opt(Contact)], ['query']),
-  'getContract' : IDL.Func([IDL.Text], [IDL.Opt(Contract)], ['query']),
-  'getDeal' : IDL.Func([IDL.Text], [IDL.Opt(Deal)], ['query']),
-  'getDocument' : IDL.Func([IDL.Text], [IDL.Opt(Document)], ['query']),
-  'getFinanceTransaction' : IDL.Func(
-      [IDL.Text],
-      [IDL.Opt(FinanceTransaction)],
-      ['query'],
-    ),
-  'getNpsCampaign' : IDL.Func([IDL.Text], [IDL.Opt(NpsCampaign)], ['query']),
-  'getNpsResponseByContract' : IDL.Func(
-      [IDL.Text],
-      [IDL.Vec(NpsResponse)],
-      ['query'],
-    ),
-  'getNpsResponses' : IDL.Func([OrgId], [IDL.Vec(NpsResponse)], ['query']),
-  'getNpsResponsesByCampaign' : IDL.Func(
-      [IDL.Text],
-      [IDL.Vec(NpsResponse)],
-      ['query'],
-    ),
-  'getNpsResponsesExist' : IDL.Func([OrgId], [IDL.Bool], ['query']),
-  'getNpsResponsesForPeriod' : IDL.Func(
-      [OrgId, IDL.Int, IDL.Int],
-      [IDL.Vec(NpsResponse)],
-      ['query'],
-    ),
-  'getNpsResponsesForTimeFrame' : IDL.Func(
-      [OrgId, IDL.Text, IDL.Int, IDL.Int],
-      [IDL.Vec(NpsResponse)],
-      ['query'],
-    ),
   'getOrganization' : IDL.Func([OrgId], [IDL.Opt(Organization)], ['query']),
-  'getProject' : IDL.Func([IDL.Text], [IDL.Opt(Project)], ['query']),
-  'getReport' : IDL.Func([IDL.Text], [IDL.Opt(Report)], ['query']),
-  'getSupportMessages' : IDL.Func(
-      [OrgId],
-      [IDL.Vec(SupportMessage)],
-      ['query'],
-    ),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
-  'inviteTeamMember' : IDL.Func([TeamInvitation], [], []),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
-  'listActivities' : IDL.Func([OrgId], [IDL.Vec(Activity)], ['query']),
-  'listCancelledContracts' : IDL.Func([OrgId], [IDL.Vec(Contract)], ['query']),
   'listContacts' : IDL.Func([OrgId], [IDL.Vec(Contact)], ['query']),
-  'listContracts' : IDL.Func([OrgId], [IDL.Vec(Contract)], ['query']),
-  'listDeals' : IDL.Func([OrgId], [IDL.Vec(Deal)], ['query']),
-  'listDocuments' : IDL.Func([OrgId], [IDL.Vec(Document)], ['query']),
-  'listFinanceTransactions' : IDL.Func(
-      [OrgId],
-      [IDL.Vec(FinanceTransaction)],
-      ['query'],
-    ),
-  'listNpsCampaigns' : IDL.Func([OrgId], [IDL.Vec(NpsCampaign)], ['query']),
-  'listOrgMembers' : IDL.Func([OrgId], [IDL.Vec(IDL.Principal)], ['query']),
-  'listProjects' : IDL.Func([OrgId], [IDL.Vec(Project)], ['query']),
-  'listReports' : IDL.Func([OrgId], [IDL.Vec(Report)], ['query']),
-  'listTeamInvitations' : IDL.Func(
-      [OrgId],
-      [IDL.Vec(TeamInvitation)],
-      ['query'],
-    ),
+  'listOrganizations' : IDL.Func([], [IDL.Vec(Organization)], ['query']),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
-  'sendSupportMessage' : IDL.Func([IDL.Text, OrgId, IDL.Int], [], []),
-  'submitNpsResponse' : IDL.Func([NpsResponse], [], []),
-  'uploadDocument' : IDL.Func([DocumentUploadInput], [], []),
+  'updateContact' : IDL.Func([IDL.Text, IDL.Text, IDL.Text, IDL.Text], [], []),
+  'updateOrganization' : IDL.Func([OrgId, IDL.Text], [], []),
 });
 
 export const idlInitArgs = [];
@@ -338,21 +117,12 @@ export const idlFactory = ({ IDL }) => {
     'success' : IDL.Opt(IDL.Bool),
     'topped_up_amount' : IDL.Opt(IDL.Nat),
   });
-  const OrgId = IDL.Text;
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
-  const Activity = IDL.Record({
-    'id' : IDL.Text,
-    'orgId' : OrgId,
-    'relatedProject' : IDL.Opt(IDL.Text),
-    'name' : IDL.Text,
-    'createdBy' : IDL.Principal,
-    'completed' : IDL.Bool,
-    'dueDate' : IDL.Opt(IDL.Int),
-  });
+  const OrgId = IDL.Text;
   const Contact = IDL.Record({
     'id' : IDL.Text,
     'orgId' : OrgId,
@@ -360,76 +130,6 @@ export const idlFactory = ({ IDL }) => {
     'createdBy' : IDL.Principal,
     'email' : IDL.Text,
     'phone' : IDL.Text,
-  });
-  const Contract = IDL.Record({
-    'id' : IDL.Text,
-    'isCancelled' : IDL.Bool,
-    'endDate' : IDL.Opt(IDL.Int),
-    'value' : IDL.Nat,
-    'orgId' : OrgId,
-    'cancellationReason' : IDL.Text,
-    'name' : IDL.Text,
-    'createdBy' : IDL.Principal,
-    'startDate' : IDL.Int,
-  });
-  const DealStage = IDL.Variant({
-    'prospecting' : IDL.Null,
-    'closedWon' : IDL.Null,
-    'negotiation' : IDL.Null,
-    'closedLost' : IDL.Null,
-  });
-  const Deal = IDL.Record({
-    'id' : IDL.Text,
-    'value' : IDL.Nat,
-    'orgId' : OrgId,
-    'name' : IDL.Text,
-    'createdBy' : IDL.Principal,
-    'stage' : DealStage,
-  });
-  const FinanceTransaction = IDL.Record({
-    'id' : IDL.Text,
-    'orgId' : OrgId,
-    'createdAt' : IDL.Int,
-    'createdBy' : IDL.Principal,
-    'description' : IDL.Text,
-    'amount' : IDL.Nat,
-  });
-  const NpsCampaign = IDL.Record({
-    'id' : IDL.Text,
-    'status' : IDL.Text,
-    'orgId' : OrgId,
-    'name' : IDL.Text,
-    'createdAt' : IDL.Int,
-    'createdBy' : IDL.Principal,
-  });
-  const ProjectPhase = IDL.Variant({
-    'completed' : IDL.Null,
-    'inProgress' : IDL.Null,
-    'planning' : IDL.Null,
-  });
-  const Project = IDL.Record({
-    'id' : IDL.Text,
-    'orgId' : OrgId,
-    'name' : IDL.Text,
-    'createdBy' : IDL.Principal,
-    'description' : IDL.Text,
-    'phase' : ProjectPhase,
-  });
-  const Report = IDL.Record({
-    'id' : IDL.Text,
-    'orgId' : OrgId,
-    'period' : IDL.Text,
-    'generatedAt' : IDL.Int,
-    'generatedBy' : IDL.Principal,
-    'reportType' : IDL.Text,
-    'format' : IDL.Text,
-  });
-  const SupportMessage = IDL.Record({
-    'id' : IDL.Text,
-    'orgId' : OrgId,
-    'sentAt' : IDL.Int,
-    'sentBy' : IDL.Principal,
-    'message' : IDL.Text,
   });
   const AppUserRole = IDL.Variant({
     'FIRSTY_CONSULTANT' : IDL.Null,
@@ -444,80 +144,11 @@ export const idlFactory = ({ IDL }) => {
     'lastName' : IDL.Text,
     'firstName' : IDL.Text,
   });
-  const CancellationStats = IDL.Record({
-    'count' : IDL.Nat,
-    'reason' : IDL.Text,
-  });
-  const ChurnParams = IDL.Record({
-    'startTime' : IDL.Int,
-    'endTime' : IDL.Int,
-    'orgId' : OrgId,
-  });
-  const ChurnOverview = IDL.Record({
-    'periodNetPromoterScore' : IDL.Float64,
-    'periodRetentionRate' : IDL.Float64,
-    'orgId' : OrgId,
-    'totalContracts' : IDL.Nat,
-    'periodChurnRate' : IDL.Float64,
-    'periodActiveContracts' : IDL.Nat,
-    'cancellationReasons' : IDL.Vec(IDL.Tuple(IDL.Text, IDL.Nat)),
-    'periodCancelledContracts' : IDL.Nat,
-    'totalCancelledContracts' : IDL.Nat,
-    'periodCanceledContracts' : IDL.Nat,
-  });
-  const ExternalBlob = IDL.Vec(IDL.Nat8);
-  const DocumentCategory = IDL.Variant({
-    'projectDocs' : IDL.Null,
-    'other' : IDL.Null,
-    'marketing' : IDL.Null,
-    'legal' : IDL.Null,
-    'presentations' : IDL.Null,
-    'contracts' : IDL.Null,
-    'reports' : IDL.Null,
-    'invoices' : IDL.Null,
-    'proposals' : IDL.Null,
-    'mediaAssets' : IDL.Null,
-  });
-  const Document = IDL.Record({
-    'id' : IDL.Text,
-    'orgId' : OrgId,
-    'file' : ExternalBlob,
-    'name' : IDL.Text,
-    'category' : DocumentCategory,
-    'uploadedAt' : IDL.Int,
-    'uploadedBy' : IDL.Principal,
-  });
-  const NpsResponse = IDL.Record({
-    'orgId' : OrgId,
-    'campaignId' : IDL.Text,
-    'submittedAt' : IDL.Int,
-    'submittedBy' : IDL.Principal,
-    'score' : IDL.Nat,
-    'comment' : IDL.Text,
-    'recommendReason' : IDL.Text,
-    'isSuccessStory' : IDL.Bool,
-    'notRecommendReason' : IDL.Text,
-    'contractId' : IDL.Text,
-  });
   const Organization = IDL.Record({
     'id' : OrgId,
     'name' : IDL.Text,
     'createdAt' : IDL.Int,
     'createdBy' : IDL.Principal,
-  });
-  const TeamInvitation = IDL.Record({
-    'id' : IDL.Text,
-    'status' : IDL.Text,
-    'orgId' : OrgId,
-    'invitedAt' : IDL.Int,
-    'invitedBy' : IDL.Principal,
-    'inviteeIdentifier' : IDL.Text,
-  });
-  const DocumentUploadInput = IDL.Record({
-    'orgId' : OrgId,
-    'file' : ExternalBlob,
-    'name' : IDL.Text,
-    'category' : DocumentCategory,
   });
   
   return IDL.Service({
@@ -548,107 +179,30 @@ export const idlFactory = ({ IDL }) => {
       ),
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-    'addMemberToOrg' : IDL.Func([IDL.Principal, OrgId], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-    'cancelContract' : IDL.Func([IDL.Text, IDL.Text], [], []),
-    'createActivity' : IDL.Func([Activity], [], []),
     'createContact' : IDL.Func([Contact], [], []),
-    'createContract' : IDL.Func([Contract], [], []),
-    'createDeal' : IDL.Func([Deal], [], []),
-    'createFinanceTransaction' : IDL.Func([FinanceTransaction], [], []),
-    'createNpsCampaign' : IDL.Func([NpsCampaign], [], []),
     'createOrganization' : IDL.Func([IDL.Text, IDL.Int], [OrgId], []),
-    'createProject' : IDL.Func([Project], [], []),
-    'generateReport' : IDL.Func([Report], [], []),
-    'getActivity' : IDL.Func([IDL.Text], [IDL.Opt(Activity)], ['query']),
-    'getAllSupportMessages' : IDL.Func(
-        [],
-        [IDL.Vec(SupportMessage)],
-        ['query'],
-      ),
+    'deleteContact' : IDL.Func([IDL.Text], [], []),
+    'deleteOrganization' : IDL.Func([OrgId], [], []),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-    'getCancellationStats' : IDL.Func(
-        [OrgId],
-        [IDL.Vec(CancellationStats)],
-        ['query'],
-      ),
-    'getChurnOverview' : IDL.Func([ChurnParams], [ChurnOverview], ['query']),
     'getContact' : IDL.Func([IDL.Text], [IDL.Opt(Contact)], ['query']),
-    'getContract' : IDL.Func([IDL.Text], [IDL.Opt(Contract)], ['query']),
-    'getDeal' : IDL.Func([IDL.Text], [IDL.Opt(Deal)], ['query']),
-    'getDocument' : IDL.Func([IDL.Text], [IDL.Opt(Document)], ['query']),
-    'getFinanceTransaction' : IDL.Func(
-        [IDL.Text],
-        [IDL.Opt(FinanceTransaction)],
-        ['query'],
-      ),
-    'getNpsCampaign' : IDL.Func([IDL.Text], [IDL.Opt(NpsCampaign)], ['query']),
-    'getNpsResponseByContract' : IDL.Func(
-        [IDL.Text],
-        [IDL.Vec(NpsResponse)],
-        ['query'],
-      ),
-    'getNpsResponses' : IDL.Func([OrgId], [IDL.Vec(NpsResponse)], ['query']),
-    'getNpsResponsesByCampaign' : IDL.Func(
-        [IDL.Text],
-        [IDL.Vec(NpsResponse)],
-        ['query'],
-      ),
-    'getNpsResponsesExist' : IDL.Func([OrgId], [IDL.Bool], ['query']),
-    'getNpsResponsesForPeriod' : IDL.Func(
-        [OrgId, IDL.Int, IDL.Int],
-        [IDL.Vec(NpsResponse)],
-        ['query'],
-      ),
-    'getNpsResponsesForTimeFrame' : IDL.Func(
-        [OrgId, IDL.Text, IDL.Int, IDL.Int],
-        [IDL.Vec(NpsResponse)],
-        ['query'],
-      ),
     'getOrganization' : IDL.Func([OrgId], [IDL.Opt(Organization)], ['query']),
-    'getProject' : IDL.Func([IDL.Text], [IDL.Opt(Project)], ['query']),
-    'getReport' : IDL.Func([IDL.Text], [IDL.Opt(Report)], ['query']),
-    'getSupportMessages' : IDL.Func(
-        [OrgId],
-        [IDL.Vec(SupportMessage)],
-        ['query'],
-      ),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
-    'inviteTeamMember' : IDL.Func([TeamInvitation], [], []),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
-    'listActivities' : IDL.Func([OrgId], [IDL.Vec(Activity)], ['query']),
-    'listCancelledContracts' : IDL.Func(
-        [OrgId],
-        [IDL.Vec(Contract)],
-        ['query'],
-      ),
     'listContacts' : IDL.Func([OrgId], [IDL.Vec(Contact)], ['query']),
-    'listContracts' : IDL.Func([OrgId], [IDL.Vec(Contract)], ['query']),
-    'listDeals' : IDL.Func([OrgId], [IDL.Vec(Deal)], ['query']),
-    'listDocuments' : IDL.Func([OrgId], [IDL.Vec(Document)], ['query']),
-    'listFinanceTransactions' : IDL.Func(
-        [OrgId],
-        [IDL.Vec(FinanceTransaction)],
-        ['query'],
-      ),
-    'listNpsCampaigns' : IDL.Func([OrgId], [IDL.Vec(NpsCampaign)], ['query']),
-    'listOrgMembers' : IDL.Func([OrgId], [IDL.Vec(IDL.Principal)], ['query']),
-    'listProjects' : IDL.Func([OrgId], [IDL.Vec(Project)], ['query']),
-    'listReports' : IDL.Func([OrgId], [IDL.Vec(Report)], ['query']),
-    'listTeamInvitations' : IDL.Func(
-        [OrgId],
-        [IDL.Vec(TeamInvitation)],
-        ['query'],
-      ),
+    'listOrganizations' : IDL.Func([], [IDL.Vec(Organization)], ['query']),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
-    'sendSupportMessage' : IDL.Func([IDL.Text, OrgId, IDL.Int], [], []),
-    'submitNpsResponse' : IDL.Func([NpsResponse], [], []),
-    'uploadDocument' : IDL.Func([DocumentUploadInput], [], []),
+    'updateContact' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text, IDL.Text],
+        [],
+        [],
+      ),
+    'updateOrganization' : IDL.Func([OrgId, IDL.Text], [], []),
   });
 };
 

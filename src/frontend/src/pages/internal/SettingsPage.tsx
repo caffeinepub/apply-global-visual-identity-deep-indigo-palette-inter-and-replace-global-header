@@ -8,73 +8,74 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Settings, Users, Bell, Shield, Palette, Database } from 'lucide-react';
+import { Database } from 'lucide-react';
+import { TeamManagementTab } from './settings/TeamManagementTab';
 
 export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Configurações</h1>
-        <p className="text-muted-foreground">Gerencie as configurações da sua organização</p>
+        <h1 className="text-3xl font-bold">Settings</h1>
+        <p className="text-muted-foreground">Manage your organization settings</p>
       </div>
 
       <Tabs defaultValue="general">
         <TabsList>
-          <TabsTrigger value="general">Geral</TabsTrigger>
-          <TabsTrigger value="team">Equipe</TabsTrigger>
-          <TabsTrigger value="notifications">Notificações</TabsTrigger>
-          <TabsTrigger value="security">Segurança</TabsTrigger>
-          <TabsTrigger value="integrations">Integrações</TabsTrigger>
+          <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="team">Team</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="security">Security</TabsTrigger>
+          <TabsTrigger value="integrations">Integrations</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="space-y-4 mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Informações da Organização</CardTitle>
+              <CardTitle>Organization Information</CardTitle>
               <CardDescription>
-                Atualize as informações básicas da sua organização
+                Update your organization's basic information
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-2">
-                <Label htmlFor="org-name">Nome da Organização</Label>
-                <Input id="org-name" defaultValue="Empresa Demo" />
+                <Label htmlFor="org-name">Organization Name</Label>
+                <Input id="org-name" defaultValue="Demo Company" />
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="org-email">E-mail de Contato</Label>
-                <Input id="org-email" type="email" defaultValue="contato@empresa.com.br" />
+                <Label htmlFor="org-email">Contact Email</Label>
+                <Input id="org-email" type="email" defaultValue="contact@company.com" />
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="org-phone">Telefone</Label>
+                <Label htmlFor="org-phone">Phone</Label>
                 <Input id="org-phone" defaultValue="(11) 98765-4321" />
               </div>
 
               <div className="grid gap-2">
                 <Label htmlFor="org-website">Website</Label>
-                <Input id="org-website" defaultValue="https://empresa.com.br" />
+                <Input id="org-website" defaultValue="https://company.com" />
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="org-description">Descrição</Label>
+                <Label htmlFor="org-description">Description</Label>
                 <Textarea 
                   id="org-description" 
                   rows={3}
-                  defaultValue="Empresa de consultoria empresarial focada em crescimento e inovação."
+                  defaultValue="Business consulting company focused on growth and innovation."
                 />
               </div>
 
               <Separator />
 
               <div className="space-y-4">
-                <h4 className="text-sm font-medium">Preferências</h4>
+                <h4 className="text-sm font-medium">Preferences</h4>
                 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Fuso Horário</Label>
+                    <Label>Time Zone</Label>
                     <p className="text-sm text-muted-foreground">
-                      Defina o fuso horário padrão
+                      Set your default time zone
                     </p>
                   </div>
                   <Select defaultValue="america-sao-paulo">
@@ -83,26 +84,26 @@ export default function SettingsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="america-sao-paulo">São Paulo (GMT-3)</SelectItem>
-                      <SelectItem value="america-new-york">Nova York (GMT-5)</SelectItem>
-                      <SelectItem value="europe-london">Londres (GMT+0)</SelectItem>
+                      <SelectItem value="america-new-york">New York (GMT-5)</SelectItem>
+                      <SelectItem value="europe-london">London (GMT+0)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Idioma</Label>
+                    <Label>Language</Label>
                     <p className="text-sm text-muted-foreground">
-                      Idioma da interface
+                      Interface language
                     </p>
                   </div>
-                  <Select defaultValue="pt-br">
+                  <Select defaultValue="en">
                     <SelectTrigger className="w-[200px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pt-br">Português (Brasil)</SelectItem>
                       <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="pt-br">Português (Brasil)</SelectItem>
                       <SelectItem value="es">Español</SelectItem>
                     </SelectContent>
                   </Select>
@@ -110,18 +111,18 @@ export default function SettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Moeda</Label>
+                    <Label>Currency</Label>
                     <p className="text-sm text-muted-foreground">
-                      Moeda padrão para valores
+                      Default currency for values
                     </p>
                   </div>
-                  <Select defaultValue="brl">
+                  <Select defaultValue="usd">
                     <SelectTrigger className="w-[200px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="usd">Dollar (USD)</SelectItem>
                       <SelectItem value="brl">Real (BRL)</SelectItem>
-                      <SelectItem value="usd">Dólar (USD)</SelectItem>
                       <SelectItem value="eur">Euro (EUR)</SelectItem>
                     </SelectContent>
                   </Select>
@@ -129,7 +130,7 @@ export default function SettingsPage() {
               </div>
 
               <div className="flex justify-end pt-4">
-                <Button>Salvar Alterações</Button>
+                <Button>Save Changes</Button>
               </div>
             </CardContent>
           </Card>
@@ -138,67 +139,13 @@ export default function SettingsPage() {
         <TabsContent value="team" className="space-y-4 mt-6">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Membros da Equipe</CardTitle>
-                  <CardDescription>
-                    Gerencie os membros e permissões da sua organização
-                  </CardDescription>
-                </div>
-                <Button>Convidar Membro</Button>
-              </div>
+              <CardTitle>Team Management</CardTitle>
+              <CardDescription>
+                Manage members and permissions for your organization
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Users className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Ana Silva</p>
-                      <p className="text-sm text-muted-foreground">ana.silva@empresa.com.br</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Select defaultValue="owner">
-                      <SelectTrigger className="w-[150px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="owner">Proprietário</SelectItem>
-                        <SelectItem value="admin">Administrador</SelectItem>
-                        <SelectItem value="member">Membro</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Users className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Carlos Santos</p>
-                      <p className="text-sm text-muted-foreground">carlos.santos@empresa.com.br</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Select defaultValue="member">
-                      <SelectTrigger className="w-[150px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="owner">Proprietário</SelectItem>
-                        <SelectItem value="admin">Administrador</SelectItem>
-                        <SelectItem value="member">Membro</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button variant="ghost" size="sm">Remover</Button>
-                  </div>
-                </div>
-              </div>
+              <TeamManagementTab />
             </CardContent>
           </Card>
         </TabsContent>
@@ -206,20 +153,20 @@ export default function SettingsPage() {
         <TabsContent value="notifications" className="space-y-4 mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Preferências de Notificação</CardTitle>
+              <CardTitle>Notification Preferences</CardTitle>
               <CardDescription>
-                Configure como e quando você deseja receber notificações
+                Configure how and when you want to receive notifications
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                <h4 className="text-sm font-medium">E-mail</h4>
+                <h4 className="text-sm font-medium">Email</h4>
                 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Novos contatos</Label>
+                    <Label>New contacts</Label>
                     <p className="text-sm text-muted-foreground">
-                      Receba notificação quando um novo contato for adicionado
+                      Receive notification when a new contact is added
                     </p>
                   </div>
                   <Switch defaultChecked />
@@ -227,9 +174,9 @@ export default function SettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Deals ganhos</Label>
+                    <Label>Deals won</Label>
                     <p className="text-sm text-muted-foreground">
-                      Notificação quando uma oportunidade for fechada
+                      Notification when an opportunity is closed
                     </p>
                   </div>
                   <Switch defaultChecked />
@@ -237,9 +184,9 @@ export default function SettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Atividades atrasadas</Label>
+                    <Label>Overdue activities</Label>
                     <p className="text-sm text-muted-foreground">
-                      Alerta quando uma atividade passar do prazo
+                      Alert when an activity is past due
                     </p>
                   </div>
                   <Switch defaultChecked />
@@ -247,9 +194,9 @@ export default function SettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Renovações de contrato</Label>
+                    <Label>Contract renewals</Label>
                     <p className="text-sm text-muted-foreground">
-                      Lembrete 30 dias antes da renovação
+                      Reminder 30 days before renewal
                     </p>
                   </div>
                   <Switch defaultChecked />
@@ -259,13 +206,13 @@ export default function SettingsPage() {
               <Separator />
 
               <div className="space-y-4">
-                <h4 className="text-sm font-medium">Resumos</h4>
+                <h4 className="text-sm font-medium">Summaries</h4>
                 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Resumo diário</Label>
+                    <Label>Daily summary</Label>
                     <p className="text-sm text-muted-foreground">
-                      Receba um resumo das atividades do dia
+                      Receive a summary of the day's activities
                     </p>
                   </div>
                   <Switch />
@@ -273,9 +220,9 @@ export default function SettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Resumo semanal</Label>
+                    <Label>Weekly summary</Label>
                     <p className="text-sm text-muted-foreground">
-                      Relatório semanal de métricas e atividades
+                      Weekly report of metrics and activities
                     </p>
                   </div>
                   <Switch defaultChecked />
@@ -283,7 +230,7 @@ export default function SettingsPage() {
               </div>
 
               <div className="flex justify-end pt-4">
-                <Button>Salvar Preferências</Button>
+                <Button>Save Preferences</Button>
               </div>
             </CardContent>
           </Card>
@@ -292,59 +239,59 @@ export default function SettingsPage() {
         <TabsContent value="security" className="space-y-4 mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Segurança e Privacidade</CardTitle>
+              <CardTitle>Security and Privacy</CardTitle>
               <CardDescription>
-                Gerencie configurações de segurança da sua conta
+                Manage your account security settings
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                <h4 className="text-sm font-medium">Autenticação</h4>
+                <h4 className="text-sm font-medium">Authentication</h4>
                 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Autenticação de dois fatores</Label>
+                    <Label>Two-factor authentication</Label>
                     <p className="text-sm text-muted-foreground">
-                      Adicione uma camada extra de segurança
+                      Add an extra layer of security
                     </p>
                   </div>
-                  <Button variant="outline">Configurar</Button>
+                  <Button variant="outline">Configure</Button>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Sessões ativas</Label>
+                    <Label>Active sessions</Label>
                     <p className="text-sm text-muted-foreground">
-                      Gerencie dispositivos conectados
+                      Manage connected devices
                     </p>
                   </div>
-                  <Button variant="outline">Ver Sessões</Button>
+                  <Button variant="outline">View Sessions</Button>
                 </div>
               </div>
 
               <Separator />
 
               <div className="space-y-4">
-                <h4 className="text-sm font-medium">Dados</h4>
+                <h4 className="text-sm font-medium">Data</h4>
                 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Exportar dados</Label>
+                    <Label>Export data</Label>
                     <p className="text-sm text-muted-foreground">
-                      Baixe uma cópia de todos os seus dados
+                      Download a copy of all your data
                     </p>
                   </div>
-                  <Button variant="outline">Exportar</Button>
+                  <Button variant="outline">Export</Button>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Excluir conta</Label>
+                    <Label>Delete account</Label>
                     <p className="text-sm text-muted-foreground">
-                      Remova permanentemente sua conta e dados
+                      Permanently remove your account and data
                     </p>
                   </div>
-                  <Button variant="destructive">Excluir</Button>
+                  <Button variant="destructive">Delete</Button>
                 </div>
               </div>
             </CardContent>
@@ -354,9 +301,9 @@ export default function SettingsPage() {
         <TabsContent value="integrations" className="space-y-4 mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Integrações</CardTitle>
+              <CardTitle>Integrations</CardTitle>
               <CardDescription>
-                Conecte ferramentas e serviços externos
+                Connect external tools and services
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -368,10 +315,10 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <p className="font-medium">Google Calendar</p>
-                      <p className="text-sm text-muted-foreground">Sincronize reuniões e eventos</p>
+                      <p className="text-sm text-muted-foreground">Sync meetings and events</p>
                     </div>
                   </div>
-                  <Button variant="outline">Conectar</Button>
+                  <Button variant="outline">Connect</Button>
                 </div>
 
                 <div className="flex items-center justify-between p-4 border rounded-lg">
@@ -381,10 +328,10 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <p className="font-medium">Slack</p>
-                      <p className="text-sm text-muted-foreground">Receba notificações no Slack</p>
+                      <p className="text-sm text-muted-foreground">Receive notifications in Slack</p>
                     </div>
                   </div>
-                  <Button variant="outline">Conectar</Button>
+                  <Button variant="outline">Connect</Button>
                 </div>
 
                 <div className="flex items-center justify-between p-4 border rounded-lg">
@@ -394,10 +341,10 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <p className="font-medium">Zapier</p>
-                      <p className="text-sm text-muted-foreground">Automatize workflows</p>
+                      <p className="text-sm text-muted-foreground">Automate workflows</p>
                     </div>
                   </div>
-                  <Button variant="outline">Conectar</Button>
+                  <Button variant="outline">Connect</Button>
                 </div>
               </div>
             </CardContent>
