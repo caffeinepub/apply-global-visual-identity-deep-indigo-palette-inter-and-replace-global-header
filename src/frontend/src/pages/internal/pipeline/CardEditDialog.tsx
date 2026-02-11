@@ -14,6 +14,12 @@ import { CustomFieldsEditor } from './CustomFieldsEditor';
 import { useKanbanBoard } from '../../../hooks/useKanbanBoard';
 import { normalizeCustomFields, convertToBackendCustomFields, createDefinitionFromField } from '../../../utils/kanbanCustomFields';
 import { strings } from '../../../i18n/strings.ptBR';
+import { 
+  OPPORTUNITY_VALUE_FIELD_NAME, 
+  getOpportunityValueFromCardFields, 
+  upsertValueField,
+  createValueFieldDefinition 
+} from '../../../utils/opportunityValue';
 
 interface CardEditDialogProps {
   card: KanbanCard | null;
@@ -38,6 +44,7 @@ export function CardEditDialog({
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [customFields, setCustomFields] = useState<CardCustomField[]>([]);
+  const [valueInput, setValueInput] = useState<string>('');
 
   const { board, addOrUpdateFieldDefinition } = useKanbanBoard(
     card?.orgId,
@@ -56,8 +63,25 @@ export function CardEditDialog({
         convertToBackendCustomFields(card.customFields)
       );
       setCustomFields(normalized);
+      
+      // Initialize value input
+      const currentValue = getOpportunityValueFromCardFields(card.customFields);
+      setValueInput(currentValue > 0 ? currentValue.toString() : '');
     }
   }, [card, board]);
+
+  // Ensure Value field definition exists when dialog opens
+  useEffect(() => {
+    if (open && board && card) {
+      const hasValueDefinition = board.customFieldDefinitions.some(
+        def => def.name === OPPORTUNITY_VALUE_FIELD_NAME
+      );
+      
+      if (!hasValueDefinition) {
+        addOrUpdateFieldDefinition(createValueFieldDefinition());
+      }
+    }
+  }, [open, board, card, addOrUpdateFieldDefinition]);
 
   const handleAddFieldDefinition = (field: CardCustomField) => {
     // Create or update the board-level definition
@@ -68,6 +92,17 @@ export function CardEditDialog({
   const handleSave = () => {
     if (!card || !title.trim()) return;
 
+    // Parse and validate value input
+    const parsedValue = valueInput.trim() === '' ? undefined : parseFloat(valueInput);
+    
+    // Validate numeric input
+    if (valueInput.trim() !== '' && (isNaN(parsedValue!) || parsedValue! < 0)) {
+      return; // Invalid input, don't save
+    }
+
+    // Update custom fields with the value
+    const fieldsWithValue = upsertValueField(customFields, parsedValue);
+
     const input: CardInput = {
       title: title.trim(),
       description: description.trim(),
@@ -75,7 +110,7 @@ export function CardEditDialog({
       columnId: card.columnId,
       orgId: card.orgId,
       boardId: card.boardId,
-      customFields,
+      customFields: fieldsWithValue,
     };
 
     onSave(card.id, input);
@@ -89,6 +124,8 @@ export function CardEditDialog({
   };
 
   if (!card) return null;
+
+  const isValueValid = valueInput.trim() === '' || (!isNaN(parseFloat(valueInput)) && parseFloat(valueInput) >= 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -150,6 +187,24 @@ export function CardEditDialog({
             )}
           </div>
 
+          {/* Fixed Value input field */}
+          <div className="grid gap-2">
+            <Label htmlFor="value">Valor da Oportunidade</Label>
+            <Input
+              id="value"
+              type="number"
+              min="0"
+              step="0.01"
+              value={valueInput}
+              onChange={(e) => setValueInput(e.target.value)}
+              placeholder="Digite o valor em negociação"
+              className={!isValueValid ? 'border-destructive' : ''}
+            />
+            {!isValueValid && (
+              <p className="text-xs text-destructive">Por favor, insira um valor numérico válido</p>
+            )}
+          </div>
+
           <div className="border-t pt-4">
             <CustomFieldsEditor 
               fields={customFields} 
@@ -172,7 +227,7 @@ export function CardEditDialog({
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               {strings.cancel}
             </Button>
-            <Button onClick={handleSave} disabled={isSaving || !title.trim()}>
+            <Button onClick={handleSave} disabled={isSaving || !title.trim() || !isValueValid}>
               {isSaving ? strings.saving : strings.card.saveChanges}
             </Button>
           </div>

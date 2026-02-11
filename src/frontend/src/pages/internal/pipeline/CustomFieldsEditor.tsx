@@ -132,8 +132,19 @@ export function CustomFieldsEditor({ fields, onChange, onAddFieldDefinition }: C
         return (
           <Input
             type="number"
-            value={field.value.number || ''}
-            onChange={(e) => handleUpdateFieldValue(field.id, { number: parseFloat(e.target.value) || 0 })}
+            step="0.01"
+            value={field.value.number !== undefined ? field.value.number : ''}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === '') {
+                handleUpdateFieldValue(field.id, {});
+              } else {
+                const parsed = parseFloat(val);
+                if (!isNaN(parsed)) {
+                  handleUpdateFieldValue(field.id, { number: parsed });
+                }
+              }
+            }}
             placeholder={strings.customFields.enterNumber}
           />
         );
@@ -356,7 +367,7 @@ function OptionManager({
             }
           }}
         />
-        <Button size="sm" onClick={handleAdd} disabled={!newOption.trim()}>
+        <Button onClick={handleAdd} size="sm" disabled={!newOption.trim()}>
           <Plus className="h-4 w-4" />
         </Button>
       </div>
@@ -367,14 +378,14 @@ function OptionManager({
 function TagsEditor({ tags, onChange }: { tags: string[]; onChange: (tags: string[]) => void }) {
   const [newTag, setNewTag] = useState('');
 
-  const handleAdd = () => {
+  const handleAddTag = () => {
     if (newTag.trim() && !tags.includes(newTag.trim())) {
       onChange([...tags, newTag.trim()]);
       setNewTag('');
     }
   };
 
-  const handleRemove = (index: number) => {
+  const handleRemoveTag = (index: number) => {
     onChange(tags.filter((_, i) => i !== index));
   };
 
@@ -385,7 +396,7 @@ function TagsEditor({ tags, onChange }: { tags: string[]; onChange: (tags: strin
           <Badge key={idx} variant="secondary" className="gap-1">
             {tag}
             <button
-              onClick={() => handleRemove(idx)}
+              onClick={() => handleRemoveTag(idx)}
               className="ml-1 hover:text-destructive"
             >
               <X className="h-3 w-3" />
@@ -401,11 +412,11 @@ function TagsEditor({ tags, onChange }: { tags: string[]; onChange: (tags: strin
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault();
-              handleAdd();
+              handleAddTag();
             }
           }}
         />
-        <Button size="sm" onClick={handleAdd} disabled={!newTag.trim()}>
+        <Button onClick={handleAddTag} size="sm" disabled={!newTag.trim()}>
           <Plus className="h-4 w-4" />
         </Button>
       </div>

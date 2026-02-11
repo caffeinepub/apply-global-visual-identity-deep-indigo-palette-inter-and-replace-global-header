@@ -1,16 +1,38 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
-  "architectural_notes": [],
+  "summary": "Build a CRM reporting system to generate sales, financial, customer success, and project reports from existing CRM fields, with PDF/CSV export, filtering, and manual + scheduled automation with stored report history.",
+  "architectural_notes": [
+    "Reports pull data from existing CRM fields.",
+    "Support report generation both manually (on-demand) and via scheduler (daily/weekly/monthly/custom).",
+    "Generated reports must be stored in the CRM for later download.",
+    "Exports supported: PDF and CSV.",
+    "Reports support filters (e.g., period, team, client) prior to generation."
+  ],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-update-the-pipeline-page-header-title-to-display-pipeline-instead-of-pipeline-de-vendas-header-only-this-should-affect-the-h1-title-rendered-in-the-pipeline-page-header-and-not-change-navigation-labels-browser-tab-title-or-any-other-locations",
-      "title": "Update the Pipeline page header title to display \"Pipeline\" instead of \"Pipeline de Vendas\" (header only). This should affect the <h1> title rendered in the Pipeline page header and not change navigation labels, browser tab title, or any other locations.",
+      "id": "feature-support-report-filters-prior-to-generation-including-at-minimum-a-date-range-filter-provide-an-extensible-structure-for-additional-filters-e-g-team-customer",
+      "title": "Support report filters prior to generation, including at minimum a date range filter; provide an extensible structure for additional filters (e.g., team, customer).",
       "reqIds": [
-        "REQ-1"
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-wire-the-internal-reports-page-to-real-backend-data-using-react-query-show-available-report-types-allow-manual-generation-pdf-csv-show-export-history-with-download-action-and-show-scheduled-reports-with-create-edit-controls",
+      "title": "Wire the internal Reports page to real backend data using React Query: show available report types, allow manual generation (PDF/CSV), show export history with download action, and show scheduled reports with create/edit controls.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-extend-the-frontend-dataclient-and-backend-api-bindings-to-include-typed-methods-for-report-history-report-generation-and-report-schedules-and-use-them-from-the-reports-page",
+      "title": "Extend the frontend DataClient and backend API bindings to include typed methods for report history, report generation, and report schedules, and use them from the Reports page.",
+      "reqIds": [
+        "REQ-6"
       ],
       "version": 1
     }
@@ -18,12 +40,36 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Alterar o nome exibido no cabeçalho da página de \"Pipeline de vendas\" para apenas \"Pipeline\"",
+      "summary": "Implement CRM reports (sales, financial, customer success, projects) with dashboard view + PDF/CSV export, filters, and manual + scheduled generation (daily/weekly/monthly/custom), storing generated reports for later download.",
       "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Implement backend support for generating Sales, Financial, Customer Success, and Project reports from existing CRM data, with manual generation and stored report history per organization.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Add backend export formats for generated reports: CSV and PDF.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Add backend scheduling for automated report generation with frequencies: daily, weekly, monthly, and custom; scheduled runs must store generated reports for later download.",
+      "reqIds": [
+        "REQ-3"
+      ],
       "status": "pending"
     }
   ],
-  "projectName": "Rename Pipeline page header to \"Pipeline\"",
+  "projectName": "Implement CRM report generation with PDF/CSV export, filters, and scheduling with stored history",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

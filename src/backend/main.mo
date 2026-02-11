@@ -3,16 +3,19 @@ import Array "mo:core/Array";
 import Text "mo:core/Text";
 import Float "mo:core/Float";
 import Iter "mo:core/Iter";
-import Runtime "mo:core/Runtime";
 import Nat "mo:core/Nat";
+import Runtime "mo:core/Runtime";
+import List "mo:core/List";
+import Int "mo:core/Int";
 import Time "mo:core/Time";
 import Principal "mo:core/Principal";
-import List "mo:core/List";
 import MixinAuthorization "authorization/MixinAuthorization";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import AccessControl "authorization/access-control";
+import Migration "migration";
 
+(with migration = Migration.run)
 actor {
   type OrgId = Text;
   type BoardId = Text;
@@ -23,11 +26,15 @@ actor {
     #completed;
   };
 
-  type DealStage = {
-    #prospecting;
-    #negotiation;
-    #closedWon;
-    #closedLost;
+  type DealStatus = {
+    #active;
+    #won;
+    #lost;
+  };
+
+  type ActivityStatus = {
+    #open;
+    #completed;
   };
 
   public type AppUserRole = {
@@ -110,7 +117,8 @@ actor {
     id : Text;
     name : Text;
     value : Nat;
-    stage : DealStage;
+    status : DealStatus;
+    startDate : Int;
     createdBy : Principal;
     orgId : OrgId;
   };
@@ -119,7 +127,7 @@ actor {
     id : Text;
     name : Text;
     dueDate : ?Int;
-    completed : Bool;
+    status : ActivityStatus;
     relatedProject : ?Text;
     orgId : OrgId;
     createdBy : Principal;
@@ -476,7 +484,7 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can create organizations");
     };
-    let orgId = caller.toText() # "-" # Int.toText(timestamp);
+    let orgId = caller.toText() # "-" # timestamp.toText();
     let org : Organization = {
       id = orgId;
       name = name;
@@ -730,7 +738,7 @@ actor {
       Runtime.trap("Unauthorized: Only users can create pipeline columns");
     };
     verifyDataEditAccess(caller, orgId);
-    let columnId = name # orgId # boardId # "-" # Int.toText(timestamp);
+    let columnId = name # orgId # boardId # "-" # timestamp.toText();
     let column : PipelineColumn = {
       id = columnId;
       name = name;
@@ -868,7 +876,8 @@ actor {
     let existingDefs = board.customFieldDefinitions.filter(func(def) { def.name != definition.name });
     let updatedDefs = existingDefs.concat([definition]);
     let updatedBoard = {
-      board with customFieldDefinitions = updatedDefs;
+      board with
+      customFieldDefinitions = updatedDefs;
     };
     kanbanBoards.add(boardId, updatedBoard);
   };
@@ -883,7 +892,7 @@ actor {
     _validateColumn(input.columnId, input.orgId, input.boardId);
 
     let card : KanbanCard = {
-      id = input.title # input.orgId # Int.toText(Time.now());
+      id = input.title # input.orgId # Time.now().toText();
       title = input.title;
       description = input.description;
       dueDate = input.dueDate;
@@ -1016,5 +1025,39 @@ actor {
       case (null) { Runtime.trap("Card not found") };
       case (?card) { card };
     };
+  };
+
+  // Dashboard API
+  public query ({ caller }) func getOrgDeals(orgId : OrgId) : async [Deal] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view deals");
+    };
+    verifyOrgAccess(caller, orgId);
+
+    let dealsIter = deals.values();
+    let filteredIter = dealsIter.filter(func(deal) { deal.orgId == orgId });
+    filteredIter.toArray();
+  };
+
+  public query ({ caller }) func getOrgActivities(orgId : OrgId) : async [Activity] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view activities");
+    };
+    verifyOrgAccess(caller, orgId);
+
+    let activitiesIter = activities.values();
+    let filteredIter = activitiesIter.filter(func(activity) { activity.orgId == orgId });
+    filteredIter.toArray();
+  };
+
+  public query ({ caller }) func getOrgContracts(orgId : OrgId) : async [Contract] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view contracts");
+    };
+    verifyOrgAccess(caller, orgId);
+
+    let contractsIter = contracts.values();
+    let filteredIter = contractsIter.filter(func(contract) { contract.orgId == orgId });
+    filteredIter.toArray();
   };
 };

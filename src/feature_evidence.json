@@ -2,10 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-the-pipeline-page-header-title-to-display-pipeline-instead-of-pipeline-de-vendas-header-only-this-should-affect-the-h1-title-rendered-in-the-pipeline-page-header-and-not-change-navigation-labels-browser-tab-title-or-any-other-locations",
-      "featureTitle": "Update the Pipeline page header title to display \"Pipeline\" instead of \"Pipeline de Vendas\" (header only). This should affect the <h1> title rendered in the Pipeline page header and not change navigation labels, browser tab title, or any other locations.",
+      "featureId": "feature-support-report-filters-prior-to-generation-including-at-minimum-a-date-range-filter-provide-an-extensible-structure-for-additional-filters-e-g-team-customer",
+      "featureTitle": "Support report filters prior to generation, including at minimum a date range filter; provide an extensible structure for additional filters (e.g., team, customer).",
       "files": [
-        "frontend/src/pages/internal/PipelinePage.tsx"
+        "frontend/src/components/dashboard/DashboardDateRangeFilter.tsx",
+        "frontend/src/pages/internal/ReportsPage.tsx",
+        "frontend/src/types/reports.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -17,7 +19,51 @@
         "blob-storage@4.0.0"
       ],
       "testIds": [
-        "REQ-1"
+        "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-wire-the-internal-reports-page-to-real-backend-data-using-react-query-show-available-report-types-allow-manual-generation-pdf-csv-show-export-history-with-download-action-and-show-scheduled-reports-with-create-edit-controls",
+      "featureTitle": "Wire the internal Reports page to real backend data using React Query: show available report types, allow manual generation (PDF/CSV), show export history with download action, and show scheduled reports with create/edit controls.",
+      "files": [
+        "frontend/src/hooks/useReports.ts",
+        "frontend/src/pages/internal/ReportsPage.tsx",
+        "frontend/src/utils/reportDownload.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-extend-the-frontend-dataclient-and-backend-api-bindings-to-include-typed-methods-for-report-history-report-generation-and-report-schedules-and-use-them-from-the-reports-page",
+      "featureTitle": "Extend the frontend DataClient and backend API bindings to include typed methods for report history, report generation, and report schedules, and use them from the Reports page.",
+      "files": [
+        "frontend/src/data/api/backendClient.ts",
+        "frontend/src/data/client.ts",
+        "frontend/src/pages/internal/ReportsPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-6"
       ],
       "confidence": "high"
     }

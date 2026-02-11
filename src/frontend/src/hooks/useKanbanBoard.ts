@@ -42,12 +42,28 @@ export function useKanbanBoard(orgId: string | null | undefined, boardId: string
     },
   });
 
+  /**
+   * Helper to ensure a custom field definition exists on the board
+   */
+  const ensureFieldDefinition = (definition: CustomFieldDefinition) => {
+    if (!boardQuery.data) return;
+    
+    const exists = boardQuery.data.customFieldDefinitions.some(
+      def => def.name === definition.name
+    );
+    
+    if (!exists) {
+      addOrUpdateFieldDefinitionMutation.mutate(definition);
+    }
+  };
+
   return {
     board: boardQuery.data,
     isLoading: boardQuery.isLoading,
     isError: boardQuery.isError,
     error: boardQuery.error,
     addOrUpdateFieldDefinition: addOrUpdateFieldDefinitionMutation.mutate,
+    ensureFieldDefinition,
     isUpdatingDefinition: addOrUpdateFieldDefinitionMutation.isPending,
   };
 }

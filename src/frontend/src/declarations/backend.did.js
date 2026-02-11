@@ -95,6 +95,44 @@ export const KanbanBoard = IDL.Record({
   'createdAt' : IDL.Int,
   'createdBy' : IDL.Principal,
 });
+export const ActivityStatus = IDL.Variant({
+  'open' : IDL.Null,
+  'completed' : IDL.Null,
+});
+export const Activity = IDL.Record({
+  'id' : IDL.Text,
+  'status' : ActivityStatus,
+  'orgId' : OrgId,
+  'relatedProject' : IDL.Opt(IDL.Text),
+  'name' : IDL.Text,
+  'createdBy' : IDL.Principal,
+  'dueDate' : IDL.Opt(IDL.Int),
+});
+export const Contract = IDL.Record({
+  'id' : IDL.Text,
+  'isCancelled' : IDL.Bool,
+  'endDate' : IDL.Opt(IDL.Int),
+  'value' : IDL.Nat,
+  'orgId' : OrgId,
+  'cancellationReason' : IDL.Text,
+  'name' : IDL.Text,
+  'createdBy' : IDL.Principal,
+  'startDate' : IDL.Int,
+});
+export const DealStatus = IDL.Variant({
+  'won' : IDL.Null,
+  'active' : IDL.Null,
+  'lost' : IDL.Null,
+});
+export const Deal = IDL.Record({
+  'id' : IDL.Text,
+  'status' : DealStatus,
+  'value' : IDL.Nat,
+  'orgId' : OrgId,
+  'name' : IDL.Text,
+  'createdBy' : IDL.Principal,
+  'startDate' : IDL.Int,
+});
 export const Organization = IDL.Record({
   'id' : OrgId,
   'name' : IDL.Text,
@@ -180,6 +218,9 @@ export const idlService = IDL.Service({
     ),
   'getContact' : IDL.Func([IDL.Text], [IDL.Opt(Contact)], ['query']),
   'getKanbanBoard' : IDL.Func([BoardId], [KanbanBoard], ['query']),
+  'getOrgActivities' : IDL.Func([OrgId], [IDL.Vec(Activity)], ['query']),
+  'getOrgContracts' : IDL.Func([OrgId], [IDL.Vec(Contract)], ['query']),
+  'getOrgDeals' : IDL.Func([OrgId], [IDL.Vec(Deal)], ['query']),
   'getOrganization' : IDL.Func([OrgId], [IDL.Opt(Organization)], ['query']),
   'getPipelineColumn' : IDL.Func(
       [IDL.Text, BoardId],
@@ -302,6 +343,44 @@ export const idlFactory = ({ IDL }) => {
     'createdAt' : IDL.Int,
     'createdBy' : IDL.Principal,
   });
+  const ActivityStatus = IDL.Variant({
+    'open' : IDL.Null,
+    'completed' : IDL.Null,
+  });
+  const Activity = IDL.Record({
+    'id' : IDL.Text,
+    'status' : ActivityStatus,
+    'orgId' : OrgId,
+    'relatedProject' : IDL.Opt(IDL.Text),
+    'name' : IDL.Text,
+    'createdBy' : IDL.Principal,
+    'dueDate' : IDL.Opt(IDL.Int),
+  });
+  const Contract = IDL.Record({
+    'id' : IDL.Text,
+    'isCancelled' : IDL.Bool,
+    'endDate' : IDL.Opt(IDL.Int),
+    'value' : IDL.Nat,
+    'orgId' : OrgId,
+    'cancellationReason' : IDL.Text,
+    'name' : IDL.Text,
+    'createdBy' : IDL.Principal,
+    'startDate' : IDL.Int,
+  });
+  const DealStatus = IDL.Variant({
+    'won' : IDL.Null,
+    'active' : IDL.Null,
+    'lost' : IDL.Null,
+  });
+  const Deal = IDL.Record({
+    'id' : IDL.Text,
+    'status' : DealStatus,
+    'value' : IDL.Nat,
+    'orgId' : OrgId,
+    'name' : IDL.Text,
+    'createdBy' : IDL.Principal,
+    'startDate' : IDL.Int,
+  });
   const Organization = IDL.Record({
     'id' : OrgId,
     'name' : IDL.Text,
@@ -387,6 +466,9 @@ export const idlFactory = ({ IDL }) => {
       ),
     'getContact' : IDL.Func([IDL.Text], [IDL.Opt(Contact)], ['query']),
     'getKanbanBoard' : IDL.Func([BoardId], [KanbanBoard], ['query']),
+    'getOrgActivities' : IDL.Func([OrgId], [IDL.Vec(Activity)], ['query']),
+    'getOrgContracts' : IDL.Func([OrgId], [IDL.Vec(Contract)], ['query']),
+    'getOrgDeals' : IDL.Func([OrgId], [IDL.Vec(Deal)], ['query']),
     'getOrganization' : IDL.Func([OrgId], [IDL.Opt(Organization)], ['query']),
     'getPipelineColumn' : IDL.Func(
         [IDL.Text, BoardId],

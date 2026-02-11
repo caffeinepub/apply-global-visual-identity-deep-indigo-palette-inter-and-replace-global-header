@@ -4,154 +4,251 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart3, Download, FileText, TrendingUp, Users, DollarSign, Calendar } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { BarChart3, Download, FileText, TrendingUp, Users, DollarSign, Calendar, Loader2 } from 'lucide-react';
+import { useCurrentOrg } from '../../org/OrgProvider';
+import { DashboardDateRangeFilter } from '../../components/dashboard/DashboardDateRangeFilter';
+import { 
+  useReportHistory, 
+  useGenerateReport, 
+  useDownloadReport, 
+  useReportSchedules,
+  useCreateReportSchedule,
+  useUpdateReportSchedule,
+  useDeleteReportSchedule,
+} from '../../hooks/useReports';
+import type { DateRangeFilter, ReportType, ReportFormat, ScheduleFrequency, ReportScheduleInput } from '../../types/reports';
+import { toast } from 'sonner';
+import { downloadReportFile, getMimeTypeForFormat, generateFilename } from '../../utils/reportDownload';
+import { format } from 'date-fns';
 
 export default function ReportsPage() {
-  const [selectedPeriod, setSelectedPeriod] = useState('current-month');
-  const [selectedFormat, setSelectedFormat] = useState('pdf');
+  const { currentOrgId } = useCurrentOrg();
+  const [selectedFormat, setSelectedFormat] = useState<ReportFormat>('pdf');
+  const [dateRange, setDateRange] = useState<DateRangeFilter>({
+    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+    endDate: new Date(),
+    preset: 'this-month',
+  });
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [newSchedule, setNewSchedule] = useState<Partial<ReportScheduleInput>>({
+    name: '',
+    reportType: 'sales',
+    format: 'pdf',
+    frequency: 'monthly',
+    timeOfDay: '09:00',
+    enabled: true,
+  });
+
+  const { data: reportHistory = [], isLoading: historyLoading } = useReportHistory();
+  const { data: schedules = [], isLoading: schedulesLoading } = useReportSchedules();
+  const generateMutation = useGenerateReport();
+  const downloadMutation = useDownloadReport();
+  const createScheduleMutation = useCreateReportSchedule();
+  const updateScheduleMutation = useUpdateReportSchedule();
+  const deleteScheduleMutation = useDeleteReportSchedule();
 
   const reports = [
     {
-      id: '1',
-      name: 'Relatório de Vendas',
-      description: 'Pipeline, conversões e receita',
+      id: 'sales',
+      name: 'Sales Report',
+      description: 'Pipeline, conversions, and revenue',
       icon: <TrendingUp className="h-5 w-5" />,
-      category: 'sales',
-      lastGenerated: '2 dias atrás',
+      category: 'sales' as ReportType,
     },
     {
-      id: '2',
-      name: 'Relatório Financeiro',
-      description: 'Receitas, despesas e fluxo de caixa',
+      id: 'finance',
+      name: 'Financial Report',
+      description: 'Revenue, expenses, and cash flow',
       icon: <DollarSign className="h-5 w-5" />,
-      category: 'finance',
-      lastGenerated: '1 semana atrás',
+      category: 'finance' as ReportType,
     },
     {
-      id: '3',
-      name: 'Relatório de Customer Success',
-      description: 'NPS, churn e health scores',
+      id: 'customer_success',
+      name: 'Customer Success Report',
+      description: 'NPS, churn, and health scores',
       icon: <Users className="h-5 w-5" />,
-      category: 'cs',
-      lastGenerated: '3 dias atrás',
+      category: 'customer_success' as ReportType,
     },
     {
-      id: '4',
-      name: 'Relatório de Projetos',
-      description: 'Status, entregas e KPIs dos projetos',
+      id: 'projects',
+      name: 'Projects Report',
+      description: 'Status, deliverables, and project KPIs',
       icon: <FileText className="h-5 w-5" />,
-      category: 'project',
-      lastGenerated: '5 dias atrás',
+      category: 'projects' as ReportType,
     },
   ];
 
-  const exportHistory = [
-    { id: '1', name: 'Vendas - Janeiro 2025', type: 'sales', format: 'PDF', date: '05/02/2025', size: '2.3 MB' },
-    { id: '2', name: 'Financeiro - Janeiro 2025', type: 'finance', format: 'XLSX', date: '03/02/2025', size: '1.8 MB' },
-    { id: '3', name: 'CS - Q4 2024', type: 'cs', format: 'PDF', date: '28/01/2025', size: '3.1 MB' },
-    { id: '4', name: 'Projetos - Janeiro 2025', type: 'project', format: 'CSV', date: '25/01/2025', size: '0.5 MB' },
-  ];
+  const handleGenerateReport = async (reportType: ReportType) => {
+    if (!currentOrgId) {
+      toast.error('No organization selected');
+      return;
+    }
 
-  const handleGenerateReport = (reportId: string) => {
-    console.log(`Generating report ${reportId} for period ${selectedPeriod} in format ${selectedFormat}`);
+    try {
+      await generateMutation.mutateAsync({
+        reportType,
+        format: selectedFormat,
+        filters: { dateRange },
+        orgId: currentOrgId,
+      });
+      toast.success('Report generated successfully');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to generate report');
+    }
+  };
+
+  const handleDownloadReport = async (reportId: string, reportType: string, format: string) => {
+    try {
+      const { blob, filename, mimeType } = await downloadMutation.mutateAsync(reportId);
+      downloadReportFile(blob, filename, mimeType);
+      toast.success('Report downloaded');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to download report');
+    }
+  };
+
+  const handleCreateSchedule = async () => {
+    if (!currentOrgId || !newSchedule.name || !newSchedule.reportType) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      await createScheduleMutation.mutateAsync({
+        name: newSchedule.name,
+        reportType: newSchedule.reportType,
+        format: newSchedule.format || 'pdf',
+        frequency: newSchedule.frequency || 'monthly',
+        timeOfDay: newSchedule.timeOfDay || '09:00',
+        dayOfWeek: newSchedule.dayOfWeek,
+        dayOfMonth: newSchedule.dayOfMonth,
+        customCron: newSchedule.customCron,
+        filters: { dateRange },
+        enabled: newSchedule.enabled ?? true,
+      });
+      toast.success('Schedule created successfully');
+      setScheduleDialogOpen(false);
+      setNewSchedule({
+        name: '',
+        reportType: 'sales',
+        format: 'pdf',
+        frequency: 'monthly',
+        timeOfDay: '09:00',
+        enabled: true,
+      });
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create schedule');
+    }
+  };
+
+  const handleToggleSchedule = async (scheduleId: string, currentEnabled: boolean) => {
+    try {
+      await updateScheduleMutation.mutateAsync({
+        scheduleId,
+        updates: { enabled: !currentEnabled },
+      });
+      toast.success(currentEnabled ? 'Schedule disabled' : 'Schedule enabled');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update schedule');
+    }
+  };
+
+  const handleDeleteSchedule = async (scheduleId: string) => {
+    try {
+      await deleteScheduleMutation.mutateAsync(scheduleId);
+      toast.success('Schedule deleted');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete schedule');
+    }
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Relatórios e Exportações</h1>
-        <p className="text-muted-foreground">Gere relatórios e exporte dados para análise</p>
+        <h1 className="text-3xl font-bold">Reports & Exports</h1>
+        <p className="text-muted-foreground">Generate reports and export data for analysis</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Relatórios Gerados</CardTitle>
+            <CardTitle className="text-sm font-medium">Reports Generated</CardTitle>
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">24</div>
-            <p className="text-xs text-muted-foreground">Este mês</p>
+            <div className="text-2xl font-bold">{reportHistory.length}</div>
+            <p className="text-xs text-muted-foreground">Total</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Exportações</CardTitle>
+            <CardTitle className="text-sm font-medium">Exports</CardTitle>
             <Download className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">18</div>
-            <p className="text-xs text-muted-foreground">Últimos 30 dias</p>
+            <div className="text-2xl font-bold">{reportHistory.length}</div>
+            <p className="text-xs text-muted-foreground">Available</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Formatos</CardTitle>
+            <CardTitle className="text-sm font-medium">Formats</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-muted-foreground">PDF, XLSX, CSV</p>
+            <div className="text-2xl font-bold">2</div>
+            <p className="text-xs text-muted-foreground">PDF, CSV</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Agendados</CardTitle>
+            <CardTitle className="text-sm font-medium">Scheduled</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">5</div>
-            <p className="text-xs text-muted-foreground">Relatórios automáticos</p>
+            <div className="text-2xl font-bold">{schedules.filter(s => s.enabled).length}</div>
+            <p className="text-xs text-muted-foreground">Active schedules</p>
           </CardContent>
         </Card>
       </div>
 
       <Tabs defaultValue="generate">
         <TabsList>
-          <TabsTrigger value="generate">Gerar Relatório</TabsTrigger>
-          <TabsTrigger value="history">Histórico</TabsTrigger>
-          <TabsTrigger value="scheduled">Agendados</TabsTrigger>
+          <TabsTrigger value="generate">Generate Report</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
+          <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
         </TabsList>
 
         <TabsContent value="generate" className="space-y-4 mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Configurar Relatório</CardTitle>
+              <CardTitle>Configure Report</CardTitle>
               <CardDescription>
-                Selecione o período e formato para gerar seu relatório
+                Select date range and format to generate your report
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2 mb-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Período</label>
-                  <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="current-month">Mês Atual</SelectItem>
-                      <SelectItem value="last-month">Mês Anterior</SelectItem>
-                      <SelectItem value="current-quarter">Trimestre Atual</SelectItem>
-                      <SelectItem value="last-quarter">Trimestre Anterior</SelectItem>
-                      <SelectItem value="current-year">Ano Atual</SelectItem>
-                      <SelectItem value="custom">Período Personalizado</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <label className="text-sm font-medium">Date Range</label>
+                  <DashboardDateRangeFilter value={dateRange} onChange={setDateRange} />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Formato</label>
-                  <Select value={selectedFormat} onValueChange={setSelectedFormat}>
+                  <label className="text-sm font-medium">Format</label>
+                  <Select value={selectedFormat} onValueChange={(v) => setSelectedFormat(v as ReportFormat)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="pdf">PDF</SelectItem>
-                      <SelectItem value="xlsx">Excel (XLSX)</SelectItem>
                       <SelectItem value="csv">CSV</SelectItem>
                     </SelectContent>
                   </Select>
@@ -177,13 +274,18 @@ export default function ReportsPage() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs text-muted-foreground">
-                          Último: {report.lastGenerated}
-                        </p>
-                        <Button size="sm" onClick={() => handleGenerateReport(report.id)}>
-                          <Download className="mr-2 h-3 w-3" />
-                          Gerar
+                      <div className="flex items-center justify-end">
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleGenerateReport(report.category)}
+                          disabled={generateMutation.isPending}
+                        >
+                          {generateMutation.isPending ? (
+                            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                          ) : (
+                            <Download className="mr-2 h-3 w-3" />
+                          )}
+                          Generate
                         </Button>
                       </div>
                     </CardContent>
@@ -197,37 +299,60 @@ export default function ReportsPage() {
         <TabsContent value="history" className="space-y-4 mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Histórico de Exportações</CardTitle>
+              <CardTitle>Export History</CardTitle>
               <CardDescription>
-                Acesse relatórios gerados anteriormente
+                Access previously generated reports
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {exportHistory.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-4">
-                      <div className="p-2 rounded-lg bg-muted">
-                        <FileText className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium">{item.name}</h4>
-                        <div className="flex items-center gap-3 mt-1">
-                          <Badge variant="outline" className="text-xs">
-                            {item.format}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">{item.date}</span>
-                          <span className="text-xs text-muted-foreground">{item.size}</span>
+              {historyLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : reportHistory.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No reports generated yet
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {reportHistory.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-4">
+                        <div className="p-2 rounded-lg bg-muted">
+                          <FileText className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium capitalize">{item.reportType.replace('_', ' ')} Report</h4>
+                          <div className="flex items-center gap-3 mt-1">
+                            <Badge variant="outline" className="text-xs uppercase">
+                              {item.format}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {format(item.generatedAt, 'MMM d, yyyy HH:mm')}
+                            </span>
+                            {item.fileSize && (
+                              <span className="text-xs text-muted-foreground">{item.fileSize}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleDownloadReport(item.id, item.reportType, item.format)}
+                        disabled={downloadMutation.isPending}
+                      >
+                        {downloadMutation.isPending ? (
+                          <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                        ) : (
+                          <Download className="mr-2 h-3 w-3" />
+                        )}
+                        Download
+                      </Button>
                     </div>
-                    <Button size="sm" variant="outline">
-                      <Download className="mr-2 h-3 w-3" />
-                      Baixar
-                    </Button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -235,48 +360,141 @@ export default function ReportsPage() {
         <TabsContent value="scheduled" className="space-y-4 mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Relatórios Agendados</CardTitle>
+              <CardTitle>Scheduled Reports</CardTitle>
               <CardDescription>
-                Configure relatórios para serem gerados automaticamente
+                Configure reports to be generated automatically
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <h4 className="font-medium">Relatório Mensal de Vendas</h4>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Todo dia 1º do mês às 09:00 • Formato: PDF
-                    </p>
-                  </div>
-                  <Badge>Ativo</Badge>
+              {schedulesLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
+              ) : (
+                <div className="space-y-4">
+                  {schedules.map((schedule) => (
+                    <div key={schedule.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h4 className="font-medium">{schedule.name}</h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {schedule.frequency.charAt(0).toUpperCase() + schedule.frequency.slice(1)} at {schedule.timeOfDay} UTC • Format: {schedule.format.toUpperCase()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={schedule.enabled}
+                          onCheckedChange={() => handleToggleSchedule(schedule.id, schedule.enabled)}
+                        />
+                        <Badge variant={schedule.enabled ? 'default' : 'secondary'}>
+                          {schedule.enabled ? 'Active' : 'Paused'}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
 
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <h4 className="font-medium">Relatório Semanal de CS</h4>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Toda segunda-feira às 08:00 • Formato: XLSX
-                    </p>
-                  </div>
-                  <Badge>Ativo</Badge>
+                  <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="w-full" variant="outline">
+                        <Calendar className="mr-2 h-4 w-4" />
+                        Schedule New Report
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Schedule Report</DialogTitle>
+                        <DialogDescription>
+                          Configure automatic report generation
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="schedule-name">Schedule Name</Label>
+                          <Input
+                            id="schedule-name"
+                            placeholder="e.g., Monthly Sales Report"
+                            value={newSchedule.name}
+                            onChange={(e) => setNewSchedule({ ...newSchedule, name: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="report-type">Report Type</Label>
+                          <Select
+                            value={newSchedule.reportType}
+                            onValueChange={(v) => setNewSchedule({ ...newSchedule, reportType: v as ReportType })}
+                          >
+                            <SelectTrigger id="report-type">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="sales">Sales</SelectItem>
+                              <SelectItem value="finance">Finance</SelectItem>
+                              <SelectItem value="customer_success">Customer Success</SelectItem>
+                              <SelectItem value="projects">Projects</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="format">Format</Label>
+                            <Select
+                              value={newSchedule.format}
+                              onValueChange={(v) => setNewSchedule({ ...newSchedule, format: v as ReportFormat })}
+                            >
+                              <SelectTrigger id="format">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pdf">PDF</SelectItem>
+                                <SelectItem value="csv">CSV</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="frequency">Frequency</Label>
+                            <Select
+                              value={newSchedule.frequency}
+                              onValueChange={(v) => setNewSchedule({ ...newSchedule, frequency: v as ScheduleFrequency })}
+                            >
+                              <SelectTrigger id="frequency">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="daily">Daily</SelectItem>
+                                <SelectItem value="weekly">Weekly</SelectItem>
+                                <SelectItem value="monthly">Monthly</SelectItem>
+                                <SelectItem value="custom">Custom</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="time">Time (UTC)</Label>
+                          <Input
+                            id="time"
+                            type="time"
+                            value={newSchedule.timeOfDay}
+                            onChange={(e) => setNewSchedule({ ...newSchedule, timeOfDay: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setScheduleDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={handleCreateSchedule}
+                          disabled={createScheduleMutation.isPending}
+                        >
+                          {createScheduleMutation.isPending ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : null}
+                          Create Schedule
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <h4 className="font-medium">Relatório Trimestral Financeiro</h4>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Primeiro dia de cada trimestre • Formato: PDF
-                    </p>
-                  </div>
-                  <Badge variant="secondary">Pausado</Badge>
-                </div>
-
-                <Button className="w-full" variant="outline">
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Agendar Novo Relatório
-                </Button>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

@@ -16,6 +16,12 @@ import type {
 import type { PipelineStage, PipelineStageReorderUpdate } from '../types/pipelineStages';
 import type { KanbanCard, CardInput } from '../types/kanbanCards';
 import type { KanbanBoardWithDefinitions } from '../hooks/useKanbanBoard';
+import type { 
+  ReportHistoryItem, 
+  ReportSchedule, 
+  ReportScheduleInput, 
+  GenerateReportInput 
+} from '../types/reports';
 
 /**
  * Cliente unificado que roteia chamadas para o backend.
@@ -110,9 +116,14 @@ export interface DataClient {
   listNpsResponses: (orgId: string, startDate: Date, endDate: Date) => Promise<NpsResponse[]>;
   createNpsResponse: (orgId: string, response: Partial<NpsResponse>) => Promise<NpsResponse>;
   
-  // Reports
-  listReports: (orgId: string) => Promise<any[]>;
-  generateReport: (orgId: string, report: any) => Promise<void>;
+  // Reports (typed)
+  listReportHistory: (orgId: string) => Promise<ReportHistoryItem[]>;
+  generateReport: (input: GenerateReportInput) => Promise<void>;
+  downloadReport: (reportId: string) => Promise<{ blob: Uint8Array; filename: string; mimeType: string }>;
+  listReportSchedules: (orgId: string) => Promise<ReportSchedule[]>;
+  createReportSchedule: (orgId: string, input: ReportScheduleInput) => Promise<string>;
+  updateReportSchedule: (scheduleId: string, updates: Partial<ReportScheduleInput>) => Promise<void>;
+  deleteReportSchedule: (scheduleId: string) => Promise<void>;
   
   // Team
   isCallerAdmin: () => Promise<boolean>;

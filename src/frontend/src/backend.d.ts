@@ -57,6 +57,15 @@ export interface KanbanBoard {
     createdAt: bigint;
     createdBy: Principal;
 }
+export interface Activity {
+    id: string;
+    status: ActivityStatus;
+    orgId: OrgId;
+    relatedProject?: string;
+    name: string;
+    createdBy: Principal;
+    dueDate?: bigint;
+}
 export type FieldType = {
     __kind__: "singleSelect";
     singleSelect: string;
@@ -76,9 +85,29 @@ export type FieldType = {
     __kind__: "number";
     number: number;
 };
+export interface Deal {
+    id: string;
+    status: DealStatus;
+    value: bigint;
+    orgId: OrgId;
+    name: string;
+    createdBy: Principal;
+    startDate: bigint;
+}
 export interface CustomField {
     value: FieldType;
     name: string;
+}
+export interface Contract {
+    id: string;
+    isCancelled: boolean;
+    endDate?: bigint;
+    value: bigint;
+    orgId: OrgId;
+    cancellationReason: string;
+    name: string;
+    createdBy: Principal;
+    startDate: bigint;
 }
 export interface CustomFieldDefinition {
     name: string;
@@ -104,11 +133,20 @@ export interface Organization {
     createdAt: bigint;
     createdBy: Principal;
 }
+export enum ActivityStatus {
+    open = "open",
+    completed = "completed"
+}
 export enum AppUserRole {
     FIRSTY_CONSULTANT = "FIRSTY_CONSULTANT",
     FIRSTY_ADMIN = "FIRSTY_ADMIN",
     OWNER_ADMIN = "OWNER_ADMIN",
     MEMBER = "MEMBER"
+}
+export enum DealStatus {
+    won = "won",
+    active = "active",
+    lost = "lost"
 }
 export enum UserRole {
     admin = "admin",
@@ -135,6 +173,9 @@ export interface backendInterface {
     getCardsByColumn(columnId: string, boardId: BoardId): Promise<Array<KanbanCard>>;
     getContact(id: string): Promise<Contact | null>;
     getKanbanBoard(boardId: BoardId): Promise<KanbanBoard>;
+    getOrgActivities(orgId: OrgId): Promise<Array<Activity>>;
+    getOrgContracts(orgId: OrgId): Promise<Array<Contract>>;
+    getOrgDeals(orgId: OrgId): Promise<Array<Deal>>;
     getOrganization(orgId: OrgId): Promise<Organization | null>;
     getPipelineColumn(columnId: string, boardId: BoardId): Promise<PipelineColumn | null>;
     getPipelineColumns(orgId: OrgId, boardId: BoardId): Promise<Array<PipelineColumn>>;

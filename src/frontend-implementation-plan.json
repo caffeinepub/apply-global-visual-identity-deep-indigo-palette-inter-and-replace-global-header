@@ -1,22 +1,90 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Pipeline page header title rename to \"Pipeline\"",
+  "title": "CRM reports UI with filters, export history downloads, and scheduling wired via typed DataClient + React Query",
   "requirements": [
     {
-      "id": "REQ-1",
-      "summary": "Change only the Pipeline page header <h1> text to display exactly \"Pipeline\" while leaving all other labels, description text, and browser tab title unchanged.",
+      "id": "REQ-4",
+      "summary": "Add pre-generation report filters (date range with presets + custom) using an extensible filter structure.",
       "acceptanceCriteria": [
-        "When visiting the internal Pipeline page, the header <h1> displays exactly: \"Pipeline\".",
-        "The Pipeline page description text remains unchanged.",
-        "No other UI labels (e.g., sidebar/nav items) are changed as part of this update.",
-        "No changes are made to the browser tab title as part of this update."
+        "Frontend provides filter controls before generation, including a date range selector with presets and a custom range option.",
+        "Backend accepts filter parameters and uses them when producing the report output and summary values.",
+        "At least the date range filter affects both manual generation and scheduled generation (scheduled reports store the effective period/range used)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/internal/PipelinePage.tsx",
+          "path": "frontend/src/types/reports.ts",
+          "operation": "create",
+          "description": "Create typed report filter models (including an extensible filter bag) and a first-class date range filter shape suitable for both manual generation and schedules."
+        },
+        {
+          "path": "frontend/src/components/dashboard/DashboardDateRangeFilter.tsx",
           "operation": "modify",
-          "description": "Replace the <h1> header text currently sourced from strings.pipeline.title with a hardcoded \"Pipeline\" (in both the empty-boards state header and the normal page header). Keep strings.pipeline.description as-is, and do not change any navigation labels or document/tab title logic. Ensure the change is limited to the header <h1> only."
+          "description": "Update the existing date-range selector UI to use English labels and formatting (to avoid introducing non-English UI on the Reports page) while keeping presets + custom range behavior."
+        },
+        {
+          "path": "frontend/src/pages/internal/ReportsPage.tsx",
+          "operation": "modify",
+          "description": "Replace the current period dropdown with the date range filter control (presets + custom) and store the selected date range in state for use in report generation and schedule creation."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Wire the /relatorios Reports page to backend data via React Query: report types, manual generation (PDF/CSV), history with download, and schedules with create/edit/enable controls.",
+      "acceptanceCriteria": [
+        "The page at route \"/relatorios\" uses backend data instead of hardcoded arrays for export history and schedules.",
+        "Clicking \"Generate\" triggers report generation and displays success/error feedback; the history list refreshes after generation completes.",
+        "History items include a working \"Download\" action that downloads the stored file content.",
+        "Scheduled tab lists schedules from the backend and allows creating a new schedule and enabling/disabling existing schedules.",
+        "All user-facing text added/changed for the Reports page is in English."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useReports.ts",
+          "operation": "create",
+          "description": "Add React Query hooks (queries + mutations) for report types/config, report generation, report history, report download, and schedules, built on DataClient (no direct actor usage)."
+        },
+        {
+          "path": "frontend/src/utils/reportDownload.ts",
+          "operation": "create",
+          "description": "Add a small helper to trigger browser downloads for report files returned by the backend (supporting blob-backed files). Use the blob-storage ExternalBlob capability for direct URL downloads when available. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/internal/ReportsPage.tsx",
+          "operation": "modify",
+          "description": "Replace hardcoded report cards/history/schedules with React Query-powered UI backed by DataClient; support selecting report type + format (PDF/CSV), generating reports with success/error feedback and automatic history refresh; implement history download action; implement schedules list plus create/edit (minimal fields) and enable/disable controls; ensure all visible text on this page is English."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "Extend DataClient and backend bindings with typed methods for report history, generation, file download, and schedules; consume them from Reports page via React Query.",
+      "acceptanceCriteria": [
+        "DataClient exposes methods for: listing report history, generating a report, downloading a report file, and CRUD for schedules.",
+        "BackendClient implements those methods by calling the canister interface.",
+        "ReportsPage uses these DataClient methods via React Query queries/mutations (no direct actor calls inside the page)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/backend.d.ts",
+          "operation": "modify",
+          "description": "Extend the generated backend interface typings to include the report capabilities needed by the UI (report generation, history listing, file download handle, and schedule CRUD) so the frontend can call them in a type-safe way."
+        },
+        {
+          "path": "frontend/src/data/client.ts",
+          "operation": "modify",
+          "description": "Replace the current loosely-typed reports methods with a typed reports API: list report history, generate report (with filters + format), download report file, and schedule create/list/update(enable/disable)/delete methods."
+        },
+        {
+          "path": "frontend/src/data/api/backendClient.ts",
+          "operation": "modify",
+          "description": "Implement the new typed DataClient report methods by delegating to the canister interface and mapping backend types to the frontend report types; for file downloads, use blob-storage ExternalBlob handling on the frontend when the backend returns a blob reference. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/internal/ReportsPage.tsx",
+          "operation": "modify",
+          "description": "Refactor the page to consume only DataClient methods through the new useReports React Query hooks (no direct actor calls) for history, generation, downloads, and schedules."
         }
       ]
     }

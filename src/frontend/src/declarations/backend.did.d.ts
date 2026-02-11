@@ -10,6 +10,17 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface Activity {
+  'id' : string,
+  'status' : ActivityStatus,
+  'orgId' : OrgId,
+  'relatedProject' : [] | [string],
+  'name' : string,
+  'createdBy' : Principal,
+  'dueDate' : [] | [bigint],
+}
+export type ActivityStatus = { 'open' : null } |
+  { 'completed' : null };
 export type AppUserRole = { 'FIRSTY_CONSULTANT' : null } |
   { 'FIRSTY_ADMIN' : null } |
   { 'OWNER_ADMIN' : null } |
@@ -39,12 +50,35 @@ export interface Contact {
   'email' : string,
   'phone' : string,
 }
+export interface Contract {
+  'id' : string,
+  'isCancelled' : boolean,
+  'endDate' : [] | [bigint],
+  'value' : bigint,
+  'orgId' : OrgId,
+  'cancellationReason' : string,
+  'name' : string,
+  'createdBy' : Principal,
+  'startDate' : bigint,
+}
 export interface CustomField { 'value' : FieldType, 'name' : string }
 export interface CustomFieldDefinition {
   'name' : string,
   'options' : Array<string>,
   'fieldType' : FieldType,
 }
+export interface Deal {
+  'id' : string,
+  'status' : DealStatus,
+  'value' : bigint,
+  'orgId' : OrgId,
+  'name' : string,
+  'createdBy' : Principal,
+  'startDate' : bigint,
+}
+export type DealStatus = { 'won' : null } |
+  { 'active' : null } |
+  { 'lost' : null };
 export type FieldType = { 'singleSelect' : string } |
   { 'date' : bigint } |
   { 'tags' : Array<string> } |
@@ -151,6 +185,9 @@ export interface _SERVICE {
   'getCardsByColumn' : ActorMethod<[string, BoardId], Array<KanbanCard>>,
   'getContact' : ActorMethod<[string], [] | [Contact]>,
   'getKanbanBoard' : ActorMethod<[BoardId], KanbanBoard>,
+  'getOrgActivities' : ActorMethod<[OrgId], Array<Activity>>,
+  'getOrgContracts' : ActorMethod<[OrgId], Array<Contract>>,
+  'getOrgDeals' : ActorMethod<[OrgId], Array<Deal>>,
   'getOrganization' : ActorMethod<[OrgId], [] | [Organization]>,
   'getPipelineColumn' : ActorMethod<[string, BoardId], [] | [PipelineColumn]>,
   'getPipelineColumns' : ActorMethod<[OrgId, BoardId], Array<PipelineColumn>>,

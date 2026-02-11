@@ -97,7 +97,7 @@ export function PipelineStageColumn({
 
   return (
     <>
-      <Card className={`flex-shrink-0 w-80 bg-muted/30 ${isDragOver ? 'ring-2 ring-primary' : ''}`}>
+      <Card className={`shrink-0 w-80 bg-muted/30 ${isDragOver ? 'ring-2 ring-primary' : ''}`}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-semibold">

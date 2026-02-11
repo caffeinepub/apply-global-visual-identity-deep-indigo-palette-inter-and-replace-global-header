@@ -1,46 +1,102 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-10T22:44:31.053Z",
-  "summary": "The diff does not provide evidence that the Pipeline page <h1> header text was changed to exactly \"Pipeline\". Instead, the visible changes add board-selection persistence logic and expand URL/session parameter utilities, which go beyond the requested “header text only” change.",
+  "generatedAt": "2026-02-11T00:36:17.302Z",
+  "summary": "Frontend scaffolding for reports (types, React Query hooks, ReportsPage wiring, download utility, date range filter UI) was added, but the diff summary does not show corresponding backend report generation/export/scheduling APIs or persistence needed to satisfy the backend requirements. Some unrelated dashboard/date-range work and extra download format handling also appears.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Update the Pipeline page header <h1> to display exactly \"Pipeline\" instead of \"Pipeline de Vendas\" (header only), without changing description text, nav labels, or browser tab title.",
-      "reason": "The provided diff snippet for PipelinePage.tsx is truncated and does not include the header <h1> rendering. There is no explicit evidence in the shown changes that the <h1> text was modified to \"Pipeline\" or that other text was left unchanged.",
+      "requirement": "Backend support for generating Sales/Financial/Customer Success/Project reports from existing CRM data, with manual generation and stored report history per organization, including persisted content and access control.",
+      "reason": "The diff summary shows only type additions (e.g., `Report` type) and migration wiring, but no concrete backend APIs/logic for generating reports, persisting report content, listing history per org, or enforcing org access rules.",
       "evidence": [
-        "frontend/src/pages/internal/PipelinePage.tsx (truncated)"
+        "backend/main.mo (truncated: only type definitions shown; no report API evidence)",
+        "backend/migration.mo (truncated: defines `Report` type but no generation/storage logic shown)",
+        "frontend-file-summaries.txt (notes backendClient has 'stub methods for report operations with warnings about pending backend implementation')"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "Backend export formats for generated reports: CSV (UTF-8 with header row) and PDF (binary blob), with history recording selected format.",
+      "reason": "No backend implementation is evidenced for producing/storing CSV/PDF bytes or validating CSV/PDF requirements; frontend adds format types/utilities but backend export logic is not shown.",
+      "evidence": [
+        "backend/main.mo (truncated: no CSV/PDF export implementation shown)",
+        "frontend/src/types/reports.ts (defines formats but does not implement backend export)",
+        "frontend-file-summaries.txt (backend client report methods described as stubs/pending backend implementation)"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "requirement": "Backend scheduling for automated report generation (daily/weekly/monthly/custom) with CRUD per org, UTC time-of-day, due execution that appends to stored history, and access control.",
+      "reason": "Frontend types/hooks exist for schedules, but the diff summary does not show backend schedule storage, CRUD endpoints, or any timer/cron mechanism to run due schedules and generate reports.",
+      "evidence": [
+        "frontend/src/hooks/useReports.ts (calls client.list/create/update/deleteReportSchedule...)",
+        "backend/main.mo (truncated: no schedule API or due-runner logic evidenced)",
+        "frontend-file-summaries.txt (backendClient report operations described as stub/pending backend implementation)"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "requirement": "Report filters prior to generation with at minimum a date range filter, and backend must accept/apply filters for both manual and scheduled generation (storing effective period/range).",
+      "reason": "Frontend provides a date range filter structure and UI, but the diff summary does not show backend accepting filters or using them in report generation/scheduled runs, nor storing the effective range in history.",
+      "evidence": [
+        "frontend/src/types/reports.ts (defines `ReportFilters`/`DateRangeFilter`)",
+        "frontend/src/pages/internal/ReportsPage.tsx (passes `filters: { dateRange }` to generateReport)",
+        "backend/main.mo (truncated: no filter handling in backend evidenced)"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "requirement": "Wire Reports page at route \"/relatorios\" to real backend data via React Query: manual generation (PDF/CSV) with feedback, history refresh, download action, schedules list + create/edit (enable/disable), English text.",
+      "reason": "ReportsPage and React Query hooks are present, but the diff summary does not show that the route \"/relatorios\" is configured, nor does it show backend-backed implementations for the client methods needed for real data and downloads.",
+      "evidence": [
+        "frontend/src/pages/internal/ReportsPage.tsx (uses hooks and English text)",
+        "frontend/src/hooks/useReports.ts (React Query hooks call DataClient methods)",
+        "frontend-file-summaries.txt (backendClient report operations described as stubs/pending backend implementation)",
+        "frontend-file-summaries.txt (route tree mentioned but no explicit evidence that \"/relatorios\" route is defined)"
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "requirement": "Extend DataClient and backend API bindings with typed methods for report history, report generation, report download, and schedule CRUD; ReportsPage must use these via React Query (no direct actor calls).",
+      "reason": "Types and hooks indicate intended usage, but the diff summary indicates report operations in BackendClient are stubs/pending backend work; also the shown backendClient.ts snippet does not evidence actual implementations of these methods calling the canister interface.",
+      "evidence": [
+        "frontend/src/hooks/useReports.ts (uses DataClient methods, not direct actor calls)",
+        "frontend/src/data/client.ts (interface extended; truncated before report methods are shown)",
+        "frontend/src/data/api/backendClient.ts (modified; snippet shows imports but not report method implementations)",
+        "frontend-file-summaries.txt (explicitly states backendClient has 'stub methods for report operations with warnings about pending backend implementation')"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Persist selected kanban board per org in session storage (read/write selectedBoardId with storeSessionParameter/getSessionParameter and default to first board).",
-      "reason": "BuildRequest requires a text-only header change; no board persistence or selection-state behavior changes were requested.",
+      "description": "Dashboard date-range filter component and dashboard page state persistence changes unrelated to the Reports feature.",
+      "reason": "BuildRequest is specific to report generation/export/filtering/scheduling and wiring the Reports page; it does not request adding or modifying the Dashboard page date range behavior.",
       "evidence": [
-        "frontend/src/pages/internal/PipelinePage.tsx (truncated)"
+        "frontend/src/components/dashboard/DashboardDateRangeFilter.tsx",
+        "frontend/src/pages/internal/DashboardPage.tsx"
       ]
     },
     {
-      "description": "Add/expand URL parameter utilities to persist parameters in sessionStorage (storeSessionParameter, getSessionParameter, getPersistedUrlParameter, clearSessionParameter, hash param clearing logic).",
-      "reason": "BuildRequest explicitly scopes change to Pipeline page header text only; URL/session parameter persistence utilities are unrelated and not requested.",
+      "description": "Download utility includes XLSX MIME type handling.",
+      "reason": "BuildRequest only requires CSV and PDF export formats; XLSX support is not requested.",
       "evidence": [
-        "frontend/src/utils/urlParams.ts (truncated)"
-      ]
-    },
-    {
-      "description": "Update project tracking state (new_feature_requests entries AR-1/AR-2 marked pending).",
-      "reason": "No requirement asked to modify project_state.json; requested change is purely UI header text.",
-      "evidence": [
-        "project_state.json"
+        "frontend/src/utils/reportDownload.ts (getMimeTypeForFormat includes 'xlsx')"
       ]
     }
   ],
-  "confidence": 0.68,
+  "confidence": 0.66,
   "changed_files": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/pages/internal/PipelinePage.tsx",
-    "frontend/src/utils/urlParams.ts",
+    "frontend/src/components/dashboard/DashboardDateRangeFilter.tsx",
+    "frontend/src/data/api/backendClient.ts",
+    "frontend/src/data/client.ts",
+    "frontend/src/hooks/useReports.ts",
+    "frontend/src/pages/internal/DashboardPage.tsx",
+    "frontend/src/pages/internal/ReportsPage.tsx",
+    "frontend/src/types/reports.ts",
+    "frontend/src/utils/reportDownload.ts",
     "project_state.json"
   ]
 }

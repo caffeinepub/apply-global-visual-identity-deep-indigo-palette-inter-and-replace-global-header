@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar } from 'lucide-react';
+import { Calendar, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import type { KanbanCard, CardInput } from '../../../types/kanbanCards';
 import { CardEditDialog } from './CardEditDialog';
+import { getOpportunityValueFromCardFields, formatCurrency } from '../../../utils/opportunityValue';
 
 interface KanbanCardItemProps {
   card: KanbanCard;
@@ -22,6 +23,8 @@ export function KanbanCardItem({ card, onUpdate, onDelete, isUpdating, isDeletin
     e.dataTransfer.setData('cardId', card.id);
     e.dataTransfer.setData('sourceColumnId', card.columnId);
   };
+
+  const opportunityValue = getOpportunityValueFromCardFields(card.customFields);
 
   return (
     <>
@@ -58,6 +61,15 @@ export function KanbanCardItem({ card, onUpdate, onDelete, isUpdating, isDeletin
               )}
             </div>
           )}
+          
+          {/* Value section at the bottom */}
+          <div className="flex items-center gap-1 pt-2 border-t text-sm font-medium">
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">Valor:</span>
+            <span className={opportunityValue > 0 ? 'text-foreground' : 'text-muted-foreground'}>
+              {opportunityValue > 0 ? formatCurrency(opportunityValue) : '—'}
+            </span>
+          </div>
         </CardContent>
       </Card>
 

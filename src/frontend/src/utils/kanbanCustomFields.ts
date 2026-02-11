@@ -43,10 +43,11 @@ function getFieldTypeFromBackend(fieldType: FieldType): CardCustomField['type'] 
 
 /**
  * Returns an empty value for a given field type
+ * For number fields, returns undefined instead of 0 to support true empty state
  */
 function getEmptyValueForType(fieldType: FieldType): CustomFieldValue {
   if ('text' in fieldType) return { text: '' };
-  if ('number' in fieldType) return { number: 0 };
+  if ('number' in fieldType) return {}; // Empty object for unset number
   if ('date' in fieldType) return {};
   if ('singleSelect' in fieldType) return { singleSelect: '' };
   if ('multiSelect' in fieldType) return { multiSelect: [] };
@@ -61,7 +62,8 @@ function mapBackendFieldTypeToFrontend(fieldType: FieldType): CustomFieldValue {
   if ('text' in fieldType) {
     return { text: fieldType.text };
   } else if ('number' in fieldType) {
-    return { number: fieldType.number };
+    // Only set number if it's non-zero or explicitly set
+    return fieldType.number !== 0 ? { number: fieldType.number } : {};
   } else if ('date' in fieldType) {
     return { date: new Date(Number(fieldType.date)) };
   } else if ('singleSelect' in fieldType) {

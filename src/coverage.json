@@ -1,35 +1,99 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-10T22:44:31.056Z",
+  "generatedAt": "2026-02-11T00:36:17.306Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 6,
+    "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Update the Pipeline page header title to display \"Pipeline\" instead of \"Pipeline de Vendas\" (header only). This should affect the <h1> title rendered in the Pipeline page header and not change navigation labels, browser tab title, or any other locations.",
+        "summary": "Implement backend support for generating Sales, Financial, Customer Success, and Project reports from existing CRM data, with manual generation and stored report history per organization.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Add backend export formats for generated reports: CSV and PDF.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Add backend scheduling for automated report generation with frequencies: daily, weekly, monthly, and custom; scheduled runs must store generated reports for later download.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Support report filters prior to generation, including at minimum a date range filter; provide an extensible structure for additional filters (e.g., team, customer).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/internal/PipelinePage.tsx"
+          "frontend/src/types/reports.ts",
+          "frontend/src/components/dashboard/DashboardDateRangeFilter.tsx",
+          "frontend/src/pages/internal/ReportsPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/internal/PipelinePage.tsx"
+          "frontend/src/types/reports.ts",
+          "frontend/src/components/dashboard/DashboardDateRangeFilter.tsx",
+          "frontend/src/pages/internal/ReportsPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Wire the internal Reports page to real backend data using React Query: show available report types, allow manual generation (PDF/CSV), show export history with download action, and show scheduled reports with create/edit controls.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useReports.ts",
+          "frontend/src/utils/reportDownload.ts",
+          "frontend/src/pages/internal/ReportsPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useReports.ts",
+          "frontend/src/utils/reportDownload.ts",
+          "frontend/src/pages/internal/ReportsPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-6",
+        "summary": "Extend the frontend DataClient and backend API bindings to include typed methods for report history, report generation, and report schedules, and use them from the Reports page.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/backend.d.ts",
+          "frontend/src/data/client.ts",
+          "frontend/src/data/api/backendClient.ts",
+          "frontend/src/pages/internal/ReportsPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/data/client.ts",
+          "frontend/src/data/api/backendClient.ts",
+          "frontend/src/pages/internal/ReportsPage.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/pages/internal/PipelinePage.tsx",
-    "frontend/src/utils/urlParams.ts",
+    "frontend/src/components/dashboard/DashboardDateRangeFilter.tsx",
+    "frontend/src/data/api/backendClient.ts",
+    "frontend/src/data/client.ts",
+    "frontend/src/hooks/useReports.ts",
+    "frontend/src/pages/internal/DashboardPage.tsx",
+    "frontend/src/pages/internal/ReportsPage.tsx",
+    "frontend/src/types/reports.ts",
+    "frontend/src/utils/reportDownload.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",
